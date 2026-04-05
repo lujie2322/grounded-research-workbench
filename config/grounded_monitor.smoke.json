@@ -1,0 +1,40 @@
+{
+  "project_name": "创业主题扎根文献监测-冒烟验证",
+  "queries": [
+    "人工智能 采纳 企业"
+  ],
+  "sources": [
+    "local"
+  ],
+  "days_back": 365,
+  "max_results_per_query": 5,
+  "download_pdfs": false,
+  "sleep_seconds": 0.2,
+  "outdir": "/Users/jie/Desktop/editor/output/grounded_monitor_smoke",
+  "local_library_paths": [
+    "/Users/jie/Desktop/editor/paper_fetch_output/pdfs"
+  ],
+  "max_local_papers": 5,
+  "baseline_paths": [],
+  "covered_topics": [
+    "前因",
+    "结果",
+    "边界条件"
+  ],
+  "translation": {
+    "enabled": false
+  },
+  "skill_dirs": [
+    "/Users/jie/.codex/skills"
+  ],
+  "agent": {
+    "enabled": true,
+    "max_turns": 8,
+    "trace_candidates": true
+  },
+  "context_compression": {
+    "enabled": true,
+    "char_threshold": 12000,
+    "max_recent_rows": 6
+  }
+}

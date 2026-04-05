@@ -1,0 +1,67 @@
+{
+  "project_name": "行业深度研究工作流",
+  "outdir": "/Users/jie/Desktop/editor/output/deep_research",
+  "memory_path": "/Users/jie/Desktop/editor/output/deep_research/workflow_memory.json",
+  "trace_path": "/Users/jie/Desktop/editor/output/deep_research/workflow_trace.jsonl",
+  "literature_csv": "/Users/jie/Desktop/editor/output/grounded_monitor_integration/literature_table.csv",
+  "theme_memory_path": "/Users/jie/Desktop/editor/output/grounded_monitor_integration/theme_memory.json",
+  "compact_context_path": "/Users/jie/Desktop/editor/output/grounded_monitor_integration/compact_context.md",
+  "local_text_paths": [
+    "/Users/jie/Desktop/editor/output/grounded_monitor_integration",
+    "/Users/jie/Desktop/editor/output/grounded_monitor_smoke"
+  ],
+  "structured_data_paths": [],
+  "local_pdf_paths": [
+    "/Users/jie/Desktop/editor/paper_fetch_output/pdfs"
+  ],
+  "workflow": {
+    "enable_searcher": true,
+    "enable_collector": true,
+    "enable_analyst": true,
+    "enable_aggregator": true,
+    "max_literature_items": 12,
+    "max_text_items": 10,
+    "max_structured_items": 8,
+    "max_context_chars": 24000,
+    "chart_top_n": 8,
+    "max_news_items": 8,
+    "max_policy_items": 8,
+    "max_community_items": 8
+  },
+  "llm": {
+    "enabled": false,
+    "provider": "openai_compatible",
+    "model": "",
+    "api_url": "",
+    "api_key_env": "DEEP_RESEARCH_API_KEY",
+    "temperature": 0.2
+  },
+  "connectors": {
+    "finance": {
+      "preferred_providers": [
+        "baostock",
+        "yahoo_finance",
+        "akshare"
+      ],
+      "baostock_start_date": "2024-01-01",
+      "yahoo_history_period": "6mo",
+      "enable_symbol_financials": false
+    },
+    "news": {
+      "provider": "google_news_rss",
+      "max_items": 8
+    },
+    "policy": {
+      "provider": "gov_cn_policy_library",
+      "max_items": 8
+    },
+    "community": {
+      "providers": [
+        "eastmoney_guba",
+        "stocktwits"
+      ],
+      "max_items": 8,
+      "per_symbol_limit": 3
+    }
+  }
+}

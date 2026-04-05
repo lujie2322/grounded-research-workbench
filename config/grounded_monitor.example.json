@@ -1,0 +1,68 @@
+{
+  "project_name": "创业主题扎根文献监测",
+  "queries": [
+    "创业 即兴行为 扎根理论",
+    "创业 资源视角 扎根理论",
+    "new venture improvisation grounded theory",
+    "entrepreneurship resource perspective review"
+  ],
+  "sources": [
+    "local",
+    "openalex",
+    "arxiv",
+    "semantic_scholar"
+  ],
+  "days_back": 45,
+  "max_results_per_query": 15,
+  "download_pdfs": true,
+  "max_pdf_pages_for_coding": 30,
+  "sleep_seconds": 0.5,
+  "outdir": "/Users/jie/Desktop/editor/output/grounded_monitor",
+  "baseline_paths": [
+    "/absolute/path/to/你的论文.pdf"
+  ],
+  "local_library_paths": [
+    "/absolute/path/to/你的文献库",
+    "/absolute/path/to/Zotero导出PDF目录"
+  ],
+  "max_local_papers": 20,
+  "covered_topics": [
+    "前因",
+    "结果",
+    "边界条件",
+    "创业资源",
+    "创业网络"
+  ],
+  "translation": {
+    "enabled": false,
+    "provider": "openai_compatible",
+    "model": "",
+    "api_url": "",
+    "api_key_env": "GROUNDED_TRANSLATE_API_KEY"
+  },
+  "skill_dirs": [
+    "/Users/jie/.codex/skills"
+  ],
+  "agent": {
+    "enabled": true,
+    "max_turns": 12,
+    "trace_candidates": false
+  },
+  "assistant": {
+    "enabled": false,
+    "provider": "openai_compatible",
+    "model": "",
+    "api_url": "",
+    "api_key_env": "GROUNDED_AGENT_API_KEY",
+    "temperature": 0.2,
+    "max_context_rows": 10,
+    "max_context_chars": 24000,
+    "answer_dirname": "qa_answers",
+    "report_dirname": "industry_reports"
+  },
+  "context_compression": {
+    "enabled": true,
+    "char_threshold": 30000,
+    "max_recent_rows": 12
+  }
+}

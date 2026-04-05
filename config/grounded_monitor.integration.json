@@ -1,0 +1,39 @@
+{
+  "project_name": "创业主题扎根文献监测-联网验证",
+  "queries": [
+    "entrepreneurship"
+  ],
+  "sources": [
+    "openalex",
+    "arxiv"
+  ],
+  "days_back": 365,
+  "max_results_per_query": 3,
+  "download_pdfs": false,
+  "sleep_seconds": 0.2,
+  "outdir": "/Users/jie/Desktop/editor/output/grounded_monitor_integration",
+  "baseline_paths": [],
+  "local_library_paths": [],
+  "max_local_papers": 5,
+  "covered_topics": [
+    "前因",
+    "结果",
+    "边界条件"
+  ],
+  "translation": {
+    "enabled": false
+  },
+  "skill_dirs": [
+    "/Users/jie/.codex/skills"
+  ],
+  "agent": {
+    "enabled": true,
+    "max_turns": 12,
+    "trace_candidates": false
+  },
+  "context_compression": {
+    "enabled": true,
+    "char_threshold": 18000,
+    "max_recent_rows": 8
+  }
+}
