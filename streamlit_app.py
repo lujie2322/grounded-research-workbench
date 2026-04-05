@@ -12,15 +12,18 @@ import pandas as pd
 import streamlit as st
 
 from research_batching import (
+    DEFAULT_VARIABLE_PROMPT_TEMPLATE,
     INTERVIEW_SUFFIXES,
     META_ANALYSIS_SUFFIXES,
     PAPER_CODING_SUFFIXES,
+    build_stage1_dataframe,
     build_batch_symlink_folders,
     build_interview_segments,
     build_meta_analysis_template,
     list_desktop_directories,
     normalize_input_paths,
     scan_source_files,
+    save_stage1_outputs,
     split_into_batches,
     write_inventory,
 )
@@ -437,7 +440,7 @@ def source_import_block(prefix: str, *, allowed_hint: str) -> dict[str, Any]:
 
 def paper_coding_panel() -> None:
     st.subheader("论文编码工作台")
-    st.caption("用于导入相关文献内容，按批次自动进行论文编码。适合大批量文献、扎根式抽取和后续主题归纳。")
+    st.caption("这个工作台已经拆成三步。当前先把第一步做实：批量导入文献，抽取论文信息、变量和 prompt 清单。")
 
     with st.form("paper-coding-form"):
         project_name = st.text_input("项目名称", value="论文编码工作台")
@@ -455,13 +458,18 @@ def paper_coding_panel() -> None:
             key="paper-baseline",
         )
         source_inputs = source_import_block("paper", allowed_hint="pdf/docx/txt/md")
+        prompt_template = st.text_area(
+            "默认变量筛选 Prompt 模板",
+            value=DEFAULT_VARIABLE_PROMPT_TEMPLATE,
+            height=320,
+            help="这会作为最后一列的默认 prompt，后面你可以逐行修改。",
+        )
 
         st.markdown("#### 自动分批规则")
         max_files = st.slider("每批最多文件数", min_value=5, max_value=80, value=20, step=1)
         max_pages = st.slider("每批最多估算页数", min_value=100, max_value=1200, value=450, step=50)
         max_size = st.slider("每批最大体积（MB）", min_value=20, max_value=500, value=120, step=10)
         enable_agent = st.checkbox("启用内置研究 agent 轨迹", value=True)
-        auto_run = st.checkbox("分批完成后立即运行论文编码", value=True)
 
         st.markdown("#### 可选：模型增强")
         enable_llm = st.checkbox("启用 OpenAI 兼容接口增强编码与后续问答", value=False, key="paper-enable-llm")
@@ -469,10 +477,9 @@ def paper_coding_panel() -> None:
         model_name = st.text_input("模型名称", value="", placeholder="gpt-4o-mini", key="paper-model-name")
         api_key = st.text_input("API Key", value="", type="password", key="paper-api-key")
 
-        submitted = st.form_submit_button("开始论文编码", type="primary")
+        submitted = st.form_submit_button("生成第一步提取表", type="primary")
 
     if not submitted:
-        render_followup_tools()
         return
 
     run_dir = RUNS_ROOT / f"paper_coding_{timestamp_id()}"
@@ -494,46 +501,94 @@ def paper_coding_panel() -> None:
         return
 
     st.session_state["latest_paper_coding_run"] = str(run_dir)
-    render_batch_preview(prepared, title="论文编码批次预览")
+    st.session_state["grounded_api_key"] = api_key.strip() if enable_llm else ""
+    render_batch_preview(prepared, title="第一步：批次拆分预览")
 
-    queries = [line.strip() for line in queries_text.splitlines() if line.strip()]
-    covered_topics = [line.strip() for line in covered_text.splitlines() if line.strip()]
-    if auto_run:
-        with st.spinner("正在按批次运行论文编码，请稍候..."):
-            result = run_paper_coding_batches(
-                run_dir=run_dir,
-                prepared=prepared,
-                project_name=project_name.strip() or "论文编码工作台",
-                queries=queries,
-                covered_topics=covered_topics,
-                baseline_paths=baseline_paths,
-                enable_agent=enable_agent,
-                enable_llm=enable_llm,
-                api_url=api_url.strip(),
-                model_name=model_name.strip(),
-                api_key=api_key.strip(),
-            )
-        st.session_state["latest_paper_coding_config"] = str(
-            run_dir / "paper_coding_batches" / prepared["batches"][0].batch_id / "grounded_config.json"
-        ) if prepared["batches"] else ""
-        st.session_state["grounded_api_key"] = api_key.strip() if enable_llm else ""
-        batch_run_csv = Path(result["batch_run_csv"])
-        merged_csv = Path(result["merged_csv"]) if result["merged_csv"] else None
-        merged_xlsx = Path(result["merged_xlsx"]) if result["merged_xlsx"] else None
-        st.markdown("### 论文编码运行结果")
-        if batch_run_csv.exists():
-            st.dataframe(pd.read_csv(batch_run_csv), use_container_width=True)
-            render_download(batch_run_csv, "下载批次运行记录", "text/csv")
-        if merged_csv and merged_csv.exists():
-            st.markdown("### 合并后的论文编码总表")
-            st.dataframe(pd.read_csv(merged_csv).head(50), use_container_width=True)
-            render_download(merged_csv, "下载合并 CSV", "text/csv")
-        if merged_xlsx and merged_xlsx.exists():
-            render_download(merged_xlsx, "下载合并 Excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    else:
-        st.info("已经完成自动分批。当前仅生成批次清单和批次输入目录，详细执行流等你后续告诉我后再继续细化。")
+    with st.spinner("正在提取论文信息、变量与默认 prompt，请稍候..."):
+        stage1_df = build_stage1_dataframe(run_dir, prepared["files"], prompt_template=prompt_template)
+    batch_lookup: dict[str, str] = {}
+    for batch in prepared["batches"]:
+        for file_path in batch.file_paths:
+            batch_lookup[file_path] = batch.batch_id
+    stage1_df["批次"] = stage1_df["文件路径"].map(batch_lookup).fillna("")
+    output_paths = save_stage1_outputs(run_dir, stage1_df)
+    st.session_state["latest_paper_stage1_csv"] = output_paths["csv"]
+    st.session_state["latest_paper_stage1_xlsx"] = output_paths["xlsx"]
 
-    render_followup_tools()
+    step1_tab, step2_tab, step3_tab = st.tabs(
+        ["第一步：论文信息与变量提取", "第二步：待接入你的流程", "第三步：待接入你的流程"]
+    )
+
+    with step1_tab:
+        st.markdown("### 第一步主表")
+        st.caption("这一页按你给的表格逻辑组织：序号、附件、主要概念、主要观点，以及最后一列可编辑 prompt。")
+        column_order = ["序号", "附件预览", "附件", "主要概念", "主要观点", "变量筛选prompt"]
+        editable_df = st.data_editor(
+            stage1_df,
+            column_order=column_order,
+            hide_index=True,
+            use_container_width=True,
+            height=680,
+            column_config={
+                "序号": st.column_config.NumberColumn("序号", disabled=True, width="small"),
+                "附件预览": st.column_config.ImageColumn("附件", help="自动生成的附件预览图", width="small"),
+                "附件": st.column_config.TextColumn("附件", disabled=True, width="medium"),
+                "主要概念": st.column_config.TextColumn("主要概念", width="medium"),
+                "主要观点": st.column_config.TextColumn("主要观点", width="large"),
+                "变量筛选prompt": st.column_config.TextColumn("变量筛选prompt", width="large"),
+            },
+            key="paper-stage1-editor",
+        )
+        edited_output = save_stage1_outputs(run_dir, pd.DataFrame(editable_df))
+        render_download(Path(edited_output["csv"]), "下载第一步主表 CSV", "text/csv")
+        render_download(
+            Path(edited_output["xlsx"]),
+            "下载第一步主表 Excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+        st.markdown("### 论文详情查看")
+        options = [
+            f"{int(row['序号'])}. {row['附件']} | {row['标题']}"
+            for _, row in pd.DataFrame(editable_df).iterrows()
+        ]
+        selected_option = st.selectbox("选择一篇文献查看详细提取结果", options=options)
+        selected_index = options.index(selected_option)
+        selected_row = pd.DataFrame(editable_df).iloc[selected_index]
+        detail_map = {
+            "标题": selected_row["标题"],
+            "作者": selected_row["作者"],
+            "期刊": selected_row["期刊"],
+            "年份": selected_row["年份"],
+            "样本特征": selected_row["样本特征"],
+            "分析方法": selected_row["分析方法"],
+            "理论基础": selected_row["理论基础"],
+            "自变量": selected_row["自变量"],
+            "中介/调节变量": selected_row["中介/调节变量"],
+            "因变量/结果变量": selected_row["因变量/结果变量"],
+            "控制变量": selected_row["控制变量"],
+            "未来研究方向": selected_row["未来研究方向"],
+            "未来研究编码": selected_row["未来研究编码"],
+            "文件路径": selected_row["文件路径"],
+            "批次": selected_row["批次"],
+        }
+        st.table(pd.DataFrame({"字段": list(detail_map.keys()), "内容": list(detail_map.values())}))
+        st.markdown("#### 当前行 Prompt")
+        st.code(str(selected_row["变量筛选prompt"]))
+
+        st.markdown("### 第一步说明")
+        st.info(
+            "这一步只负责提取论文信息、变量、主要概念、主要观点和默认 prompt。"
+            "你后面把第二步、第三步的逻辑告诉我后，我会继续把论文编码工作台完整接上。"
+        )
+
+    with step2_tab:
+        st.markdown("### 第二步预留区")
+        st.info("你后续告诉我第二步流程后，我会把它接在第一步主表结果后面。")
+
+    with step3_tab:
+        st.markdown("### 第三步预留区")
+        st.info("你后续告诉我第三步流程后，我会把它继续接成完整自动化。")
 
 
 def meta_analysis_panel() -> None:

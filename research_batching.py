@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import shutil
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
 import fitz
+import matplotlib.pyplot as plt
 import pandas as pd
 
 try:
@@ -15,12 +17,80 @@ try:
 except Exception:  # pragma: no cover
     Document = None
 
+from grounded_daily_monitor import (
+    aggregate_records,
+    build_open_code_records,
+    build_selective_summary,
+    extract_future_research_items,
+    extract_hypotheses_propositions,
+    extract_variable_roles,
+)
+
 
 DESKTOP_ROOT = Path.home() / "Desktop"
 
 PAPER_CODING_SUFFIXES = {".pdf", ".docx", ".txt", ".md"}
 META_ANALYSIS_SUFFIXES = {".pdf", ".docx", ".txt", ".md", ".csv", ".xlsx", ".xls"}
 INTERVIEW_SUFFIXES = {".docx", ".txt", ".md", ".pdf"}
+
+METHOD_KEYWORDS = [
+    "结构方程模型", "sem", "问卷", "survey", "回归", "regression", "元分析", "meta-analysis",
+    "案例研究", "case study", "fsqca", "扎根理论", "grounded theory", "访谈", "interview",
+    "文本分析", "text analysis", "panel", "面板", "实验", "experiment",
+]
+
+THEORY_KEYWORDS = [
+    "toe", "技术-组织-环境", "技术—组织—环境", "doi", "创新扩散", "动态能力", "dynamic capability",
+    "制度理论", "institutional", "资源基础", "resource-based", "rbv", "社会资本", "social capital",
+    "upper echelons", "高层梯队", "utaut", "tam", "可供性", "affordance",
+]
+
+SAMPLE_MARKERS = [
+    "样本", "问卷", "受访", "respondent", "sample", "manager", "firm", "企业", "公司", "N=",
+]
+
+DEFAULT_VARIABLE_PROMPT_TEMPLATE = """我将按照学术文献解构框架，系统分析这篇关于企业人工智能采纳的实证研究论文。
+
+---
+
+## 文献解析报告
+
+### 一、文献标识
+请提取：作者、标题、期刊、年份/卷期、在线发表时间、样本特征、分析方法。
+
+### 二、文献类型标注
+请判断该文是实证研究、命题研究、综述研究还是方法论文，并简述理论基础与方法论特征。
+
+### 三、变量关系矩阵
+请系统提取：
+- 自变量
+- 中介变量
+- 调节变量
+- 因变量 / 结果变量
+- 控制变量
+- 各变量英文表述、测量来源与备注
+
+### 四、假设 / 命题详表
+请逐条列出 H1、H2、命题一、命题二等内容，包含理论依据、检验结果、效应方向和显著性。
+
+### 五、模型关系图（文字版）
+请把变量之间的关系链写成清晰的文字结构。
+
+### 六、未来研究方向编码表
+请提炼未来研究方向，并压缩为词语或短语级编码。
+
+### 七、编码批注与待确认事项
+请标记关系不显著、方向矛盾、测量局限、理论解释不足等问题。
+
+### 八、核心贡献与理论对话
+请总结理论整合、边界条件、绩效证据、矛盾发现和研究贡献。
+
+请严格依据原文信息，不要编造。
+
+文献信息提示：
+- 标题：{title}
+- 作者：{authors}
+"""
 
 
 @dataclass
@@ -42,6 +112,81 @@ class BatchInfo:
     total_estimated_pages: int
     file_names: list[str]
     file_paths: list[str]
+
+
+def normalize_space(text: str) -> str:
+    return re.sub(r"\s+", " ", text.replace("\x00", " ")).strip()
+
+
+def guess_title(text: str, fallback: str) -> str:
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    for line in lines[:30]:
+        lowered = line.lower()
+        if len(line) < 8 or len(line) > 220:
+            continue
+        if any(token in lowered for token in ["abstract", "摘要", "关键词", "doi", "vol.", "issue", "journal"]):
+            continue
+        if re.search(r"(研究|影响|采纳|采用|应用|机制|模型|路径|innovation|adoption|artificial intelligence|ai )", lowered):
+            return line
+    return fallback
+
+
+def guess_authors(text: str) -> str:
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    for line in lines[:20]:
+        if len(line) > 120:
+            continue
+        if any(token in line.lower() for token in ["university", "学院", "大学", "abstract", "关键词"]):
+            continue
+        if re.search(r"[A-Z][a-z]+", line) and ("," in line or " and " in line.lower()):
+            return line
+        if re.search(r"[\u4e00-\u9fff]{2,}", line) and "，" in line:
+            return line
+    return ""
+
+
+def guess_year(text: str) -> str:
+    match = re.search(r"(20\d{2})", text)
+    return match.group(1) if match else ""
+
+
+def guess_journal(text: str) -> str:
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    for line in lines[:25]:
+        lowered = line.lower()
+        if any(token in lowered for token in ["journal", "review", "management", "research", "forecasting", "technovation", "information"]):
+            if len(line) <= 120:
+                return line
+    return ""
+
+
+def guess_method(text: str) -> str:
+    lowered = text.lower()
+    hits = [keyword for keyword in METHOD_KEYWORDS if keyword.lower() in lowered]
+    return "、".join(dict.fromkeys(hits))[:200]
+
+
+def guess_theory(text: str) -> str:
+    lowered = text.lower()
+    hits = [keyword for keyword in THEORY_KEYWORDS if keyword.lower() in lowered]
+    return "、".join(dict.fromkeys(hits))[:200]
+
+
+def guess_sample(text: str) -> str:
+    sentences = [normalize_space(line) for line in text.splitlines() if line.strip()]
+    hits: list[str] = []
+    for sentence in sentences[:120]:
+        lowered = sentence.lower()
+        if any(marker.lower() in lowered for marker in SAMPLE_MARKERS) and 12 <= len(sentence) <= 220:
+            hits.append(sentence)
+        if len(hits) >= 3:
+            break
+    return "；".join(hits[:2])
+
+
+def build_prompt(title: str, authors: str, template: str | None = None) -> str:
+    base = template or DEFAULT_VARIABLE_PROMPT_TEMPLATE
+    return base.format(title=title or "待补充", authors=authors or "待补充")
 
 
 def ensure_dir(path: Path) -> Path:
@@ -253,6 +398,34 @@ def extract_text_from_path(path: Path) -> str:
         return ""
 
 
+def create_attachment_preview(path: Path, preview_dir: Path) -> str:
+    preview_dir.mkdir(parents=True, exist_ok=True)
+    preview_path = preview_dir / f"{path.stem[:80]}_{path.suffix.lower().replace('.', '') or 'file'}.png"
+    if preview_path.exists():
+        return str(preview_path)
+    suffix = path.suffix.lower()
+    if suffix == ".pdf":
+        try:
+            with fitz.open(path) as doc:
+                page = doc.load_page(0)
+                pix = page.get_pixmap(matrix=fitz.Matrix(0.35, 0.35), alpha=False)
+                pix.save(preview_path)
+                return str(preview_path)
+        except Exception:
+            pass
+    fig, ax = plt.subplots(figsize=(1.6, 2.1), dpi=160)
+    ax.axis("off")
+    ax.set_facecolor("#f8fafc")
+    fig.patch.set_facecolor("#f8fafc")
+    label = f"{path.suffix.lower().replace('.', '').upper() or 'FILE'}\n{path.name[:42]}"
+    ax.text(0.5, 0.56, label, ha="center", va="center", fontsize=9, wrap=True, color="#334155")
+    ax.text(0.5, 0.13, "附件预览", ha="center", va="center", fontsize=8, color="#0f766e")
+    fig.tight_layout(pad=0.2)
+    fig.savefig(preview_path, bbox_inches="tight")
+    plt.close(fig)
+    return str(preview_path)
+
+
 def split_text_segments(text: str, *, chunk_chars: int = 2200) -> list[str]:
     text = text.replace("\x00", " ").strip()
     if not text:
@@ -272,6 +445,72 @@ def split_text_segments(text: str, *, chunk_chars: int = 2200) -> list[str]:
     if current.strip():
         chunks.append(current.strip())
     return chunks
+
+
+def build_stage1_dataframe(
+    run_dir: Path,
+    files: list[SourceFile],
+    *,
+    prompt_template: str | None = None,
+) -> pd.DataFrame:
+    preview_dir = ensure_dir(run_dir / "stage1_previews")
+    rows: list[dict[str, Any]] = []
+    for index, item in enumerate(files, start=1):
+        path = Path(item.path)
+        text = extract_text_from_path(path)[:160_000]
+        records = build_open_code_records(text, limit=24)
+        matched = aggregate_records(records)
+        hypotheses = extract_hypotheses_propositions(text, matched, limit=6)
+        variable_roles = extract_variable_roles(text, matched, hypotheses)
+        future_items, future_codes = extract_future_research_items(text, matched, limit=6)
+        title = guess_title(text, path.stem)
+        authors = guess_authors(text)
+        year = guess_year(text)
+        journal = guess_journal(text)
+        method = guess_method(text)
+        theory = guess_theory(text)
+        sample = guess_sample(text)
+        main_concepts = "、".join(
+            matched.get("antecedents", [])[:3]
+            + matched.get("mechanisms", [])[:2]
+            + matched.get("outcomes", [])[:2]
+        )
+        main_viewpoint = "；".join(hypotheses[:2]) or build_selective_summary(matched)
+        rows.append(
+            {
+                "序号": index,
+                "附件预览": create_attachment_preview(path, preview_dir),
+                "附件": path.name,
+                "文件路径": item.path,
+                "批次": "",
+                "标题": title,
+                "作者": authors or "待补充",
+                "期刊": journal or "待补充",
+                "年份": year or "待补充",
+                "样本特征": sample or "待补充",
+                "分析方法": method or "待补充",
+                "理论基础": theory or "待补充",
+                "主要概念": main_concepts or "待补充",
+                "主要观点": main_viewpoint or "待补充",
+                "自变量": "、".join(variable_roles.get("independent_vars", [])) or "待补充",
+                "中介/调节变量": "、".join(variable_roles.get("mediator_moderator_vars", [])) or "待补充",
+                "因变量/结果变量": "、".join(variable_roles.get("dependent_vars", [])) or "待补充",
+                "控制变量": "、".join(variable_roles.get("control_vars", [])) or "待补充",
+                "未来研究方向": "；".join(future_items) or "待补充",
+                "未来研究编码": "、".join(future_codes) or "待补充",
+                "变量筛选prompt": build_prompt(title, authors, prompt_template),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def save_stage1_outputs(run_dir: Path, dataframe: pd.DataFrame) -> dict[str, str]:
+    output_dir = ensure_dir(run_dir / "stage1_outputs")
+    csv_path = output_dir / "paper_stage1_table.csv"
+    xlsx_path = output_dir / "paper_stage1_table.xlsx"
+    dataframe.to_csv(csv_path, index=False)
+    dataframe.to_excel(xlsx_path, index=False)
+    return {"csv": str(csv_path), "xlsx": str(xlsx_path)}
 
 
 def build_meta_analysis_template(run_dir: Path, files: list[SourceFile], batches: list[BatchInfo]) -> str:
