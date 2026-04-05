@@ -10,6 +10,10 @@ from typing import Any
 
 import pandas as pd
 import streamlit as st
+try:
+    from streamlit_sortables import sort_items
+except Exception:  # pragma: no cover
+    sort_items = None
 
 from research_batching import (
     DEFAULT_VARIABLE_PROMPT_TEMPLATE,
@@ -18,6 +22,7 @@ from research_batching import (
     PAPER_CODING_SUFFIXES,
     build_stage1_dataframe,
     build_batch_symlink_folders,
+    create_attachment_preview,
     build_interview_segments,
     build_meta_analysis_template,
     list_desktop_directories,
@@ -88,10 +93,45 @@ def save_uploaded_files(files: list[Any], target_dir: Path) -> list[str]:
     return saved
 
 
-def reorder_files_by_upload_order(files: list[Any], uploaded_files: list[Any]) -> list[Any]:
-    if not uploaded_files:
+def as_file_uri(path_text: str) -> str:
+    if not path_text:
+        return ""
+    return Path(path_text).resolve().as_uri()
+
+
+def renumber_rows(dataframe: pd.DataFrame) -> pd.DataFrame:
+    if dataframe.empty or "序号" not in dataframe.columns:
+        return dataframe
+    copy = dataframe.copy()
+    copy["序号"] = list(range(1, len(copy) + 1))
+    return copy
+
+
+def enrich_stage1_dataframe(dataframe: pd.DataFrame) -> pd.DataFrame:
+    copy = dataframe.copy()
+    if "文件路径" not in copy.columns:
+        copy["文件路径"] = ""
+    if "附件预览" not in copy.columns:
+        copy["附件预览"] = ""
+    if "查看原文" not in copy.columns:
+        copy["查看原文"] = copy["文件路径"].fillna("").map(as_file_uri)
+    else:
+        missing_mask = copy["查看原文"].fillna("").astype(str).str.strip() == ""
+        copy.loc[missing_mask, "查看原文"] = copy.loc[missing_mask, "文件路径"].fillna("").map(as_file_uri)
+    return copy
+
+
+def reorder_files_by_upload_order(
+    files: list[Any],
+    uploaded_files: list[Any],
+    preferred_names: list[str] | None = None,
+) -> list[Any]:
+    if preferred_names:
+        upload_order = {name: index for index, name in enumerate(preferred_names)}
+    elif uploaded_files:
+        upload_order = {uploaded.name: index for index, uploaded in enumerate(uploaded_files)}
+    else:
         return files
-    upload_order = {uploaded.name: index for index, uploaded in enumerate(uploaded_files)}
     ordered: list[tuple[int, int, Any]] = []
     for index, item in enumerate(files):
         priority = upload_order.get(Path(item.path).name, len(upload_order) + index)
@@ -100,16 +140,33 @@ def reorder_files_by_upload_order(files: list[Any], uploaded_files: list[Any]) -
     return [item for _, _, item in ordered]
 
 
-def build_attachment_seed_table(uploaded_files: list[Any], rows: int = 18) -> pd.DataFrame:
+def build_attachment_seed_table(uploaded_files: list[Any], preview_root: Path, rows: int = 18) -> pd.DataFrame:
     prompt = "我将按照学术文献解构框架，系统分析这篇关于企业人工智能采纳的实证研究论文。"
-    attachment_names = [uploaded.name for uploaded in uploaded_files]
-    total_rows = max(rows, len(attachment_names) + 8)
+    upload_dir = preview_root / "seed_uploads"
+    saved_paths = save_uploaded_files(uploaded_files, upload_dir)
+    preview_dir = preview_root / "seed_previews"
+    attachment_rows: list[dict[str, Any]] = []
+    for saved_path in saved_paths:
+        path = Path(saved_path)
+        attachment_rows.append(
+            {
+                "附件预览": create_attachment_preview(path, preview_dir),
+                "附件": path.name,
+                "文件路径": str(path),
+                "查看原文": as_file_uri(str(path)),
+            }
+        )
+    total_rows = max(rows, len(attachment_rows) + 8)
     data = []
     for index in range(1, total_rows + 1):
+        attachment = attachment_rows[index - 1] if index - 1 < len(attachment_rows) else {}
         data.append(
             {
                 "序号": index,
-                "附件": attachment_names[index - 1] if index - 1 < len(attachment_names) else "",
+                "附件预览": attachment.get("附件预览", ""),
+                "附件": attachment.get("附件", ""),
+                "文件路径": attachment.get("文件路径", ""),
+                "查看原文": attachment.get("查看原文", ""),
                 "主要概念": "",
                 "主要观点": "",
                 "变量筛选prompt": prompt,
@@ -377,7 +434,9 @@ def build_placeholder_stage1_table(rows: int = 18) -> pd.DataFrame:
         data.append(
             {
                 "序号": index,
+                "附件预览": "",
                 "附件": "",
+                "查看原文": "",
                 "主要概念": "",
                 "主要观点": "",
                 "变量筛选prompt": prompt,
@@ -393,6 +452,7 @@ def store_auto_coding_stage1_results(
     stage1_df: pd.DataFrame,
     output_paths: dict[str, str],
 ) -> None:
+    stage1_df = enrich_stage1_dataframe(stage1_df)
     st.session_state["auto_coding_stage1_run"] = str(run_dir)
     st.session_state["auto_coding_stage1_inventory"] = prepared["inventory_paths"]
     st.session_state["auto_coding_stage1_batch_count"] = len(prepared["batches"])
@@ -402,15 +462,90 @@ def store_auto_coding_stage1_results(
     st.session_state["auto_coding_stage1_xlsx"] = output_paths["xlsx"]
 
 
+def apply_attachment_order_to_rows(ordered_labels: list[str]) -> None:
+    rows = st.session_state.get("auto_coding_stage1_rows", [])
+    if not rows or not ordered_labels:
+        return
+    dataframe = pd.DataFrame(rows)
+    label_to_row = {
+        f"{int(row['序号']):02d}｜{row['附件']}": row
+        for _, row in dataframe.iterrows()
+        if str(row.get("附件", "")).strip()
+    }
+    ordered_rows = [label_to_row[label] for label in ordered_labels if label in label_to_row]
+    leftovers = [
+        row
+        for _, row in dataframe.iterrows()
+        if f"{int(row['序号']):02d}｜{row['附件']}" not in ordered_labels
+    ]
+    if not ordered_rows and not leftovers:
+        return
+    reordered = renumber_rows(pd.DataFrame(ordered_rows + leftovers))
+    st.session_state["auto_coding_stage1_rows"] = reordered.to_dict(orient="records")
+    run_dir_raw = st.session_state.get("auto_coding_stage1_run", "")
+    if run_dir_raw:
+        edited_output = save_stage1_outputs(Path(run_dir_raw), reordered)
+        st.session_state["auto_coding_stage1_csv"] = edited_output["csv"]
+        st.session_state["auto_coding_stage1_xlsx"] = edited_output["xlsx"]
+
+
+def render_attachment_sorter(detail_df: pd.DataFrame) -> None:
+    sortable_df = detail_df[detail_df["附件"].fillna("").astype(str).str.strip() != ""].copy()
+    if sortable_df.empty:
+        return
+    labels = [f"{int(row['序号']):02d}｜{row['附件']}" for _, row in sortable_df.iterrows()]
+    st.markdown("### 附件排序器")
+    st.caption("按住拖拽下面的附件条目调整顺序。松开后，第一步主表会同步重排。")
+    if sort_items is None:
+        st.info("当前环境还没有拖拽组件，已自动降级为普通查看。安装依赖后这里会变成可拖拽排序。")
+        st.write(labels)
+        return
+    ordered_labels = sort_items(
+        labels,
+        direction="vertical",
+        key="auto-coding-attachment-sorter",
+        custom_style="""
+        .sortable-component { padding: 0; }
+        .sortable-item {
+          background: linear-gradient(180deg, #f8fffd 0%, #eefbf6 100%);
+          border: 1px solid rgba(15,118,110,0.18);
+          border-radius: 14px;
+          padding: 12px 14px;
+          margin: 8px 0;
+          font-size: 14px;
+          font-weight: 600;
+          color: #102a43;
+          box-shadow: 0 10px 24px rgba(15,118,110,0.06);
+        }
+        """,
+    )
+    if ordered_labels != labels:
+        apply_attachment_order_to_rows(ordered_labels)
+        st.rerun()
+
+
+def render_document_actions(selected_row: pd.Series) -> None:
+    file_path = str(selected_row.get("文件路径", "")).strip()
+    if not file_path:
+        return
+    action_col1, action_col2, action_col3 = st.columns([1, 1, 2])
+    if action_col1.button("打开原文", key=f"open-doc-{file_path}"):
+        subprocess.Popen(["open", file_path], cwd=APP_ROOT)
+    parent_dir = str(Path(file_path).resolve().parent)
+    if action_col2.button("打开所在目录", key=f"open-dir-{file_path}"):
+        subprocess.Popen(["open", parent_dir], cwd=APP_ROOT)
+    action_col3.markdown(f"[在新窗口查看原文]({as_file_uri(file_path)})")
+
+
 def render_auto_coding_stage1_results() -> None:
     rows = st.session_state.get("auto_coding_stage1_rows", [])
     if not rows:
         return
 
-    stage1_df = pd.DataFrame(rows)
+    stage1_df = enrich_stage1_dataframe(pd.DataFrame(rows))
     st.markdown("### 第一步主表")
     st.caption("这里已经接入真实提取结果。你可以直接在表格里修改主要概念、主要观点和每篇文献的变量筛选 prompt。")
-    column_order = ["序号", "附件预览", "附件", "主要概念", "主要观点", "变量筛选prompt"]
+    column_order = ["序号", "附件预览", "附件", "查看原文", "主要概念", "主要观点", "变量筛选prompt"]
     edited_df = st.data_editor(
         stage1_df,
         column_order=column_order,
@@ -422,16 +557,17 @@ def render_auto_coding_stage1_results() -> None:
             "序号": st.column_config.NumberColumn("序号", disabled=True, width="small"),
             "附件预览": st.column_config.ImageColumn("附件", help="自动生成的附件预览图", width="small"),
             "附件": st.column_config.TextColumn("附件", disabled=True, width="medium"),
+            "查看原文": st.column_config.LinkColumn("查看原文", width="small", display_text="打开"),
             "主要概念": st.column_config.TextColumn("主要概念", width="medium"),
             "主要观点": st.column_config.TextColumn("主要观点", width="large"),
             "变量筛选prompt": st.column_config.TextColumn("变量筛选prompt", width="large"),
         },
         key="auto-coding-stage1-editor-live",
     )
-    st.session_state["auto_coding_stage1_rows"] = pd.DataFrame(edited_df).to_dict(orient="records")
+    st.session_state["auto_coding_stage1_rows"] = enrich_stage1_dataframe(pd.DataFrame(edited_df)).to_dict(orient="records")
     run_dir_raw = st.session_state.get("auto_coding_stage1_run", "")
     if run_dir_raw:
-        edited_output = save_stage1_outputs(Path(run_dir_raw), pd.DataFrame(edited_df))
+        edited_output = save_stage1_outputs(Path(run_dir_raw), enrich_stage1_dataframe(pd.DataFrame(edited_df)))
         st.session_state["auto_coding_stage1_csv"] = edited_output["csv"]
         st.session_state["auto_coding_stage1_xlsx"] = edited_output["xlsx"]
 
@@ -451,13 +587,16 @@ def render_auto_coding_stage1_results() -> None:
     if run_dir_text:
         download_col3.caption(f"运行目录：`{run_dir_text}`")
 
+    render_attachment_sorter(enrich_stage1_dataframe(pd.DataFrame(edited_df)))
+
     st.markdown("### 论文详情查看")
-    detail_df = pd.DataFrame(edited_df)
-    options = [f"{int(row['序号'])}. {row['附件']} | {row['标题']}" for _, row in detail_df.iterrows()]
+    detail_df = enrich_stage1_dataframe(pd.DataFrame(edited_df))
+    selectable_df = detail_df[detail_df["附件"].fillna("").astype(str).str.strip() != ""].copy()
+    options = [f"{int(row['序号'])}. {row['附件']} | {row['标题']}" for _, row in selectable_df.iterrows()]
     if options:
         selected_option = st.selectbox("选择一篇文献查看详细提取结果", options=options, key="auto-coding-detail-select")
         selected_index = options.index(selected_option)
-        selected_row = detail_df.iloc[selected_index]
+        selected_row = selectable_df.iloc[selected_index]
         detail_map = {
             "标题": selected_row["标题"],
             "作者": selected_row["作者"],
@@ -476,6 +615,7 @@ def render_auto_coding_stage1_results() -> None:
             "批次": selected_row["批次"],
         }
         st.table(pd.DataFrame({"字段": list(detail_map.keys()), "内容": list(detail_map.values())}))
+        render_document_actions(selected_row)
         st.markdown("#### 当前行 Prompt")
         st.code(str(selected_row["变量筛选prompt"]))
 
@@ -577,6 +717,7 @@ def literature_auto_coding_panel() -> None:
                     for file_path in batch.file_paths:
                         batch_lookup[file_path] = batch.batch_id
                 stage1_df["批次"] = stage1_df["文件路径"].map(batch_lookup).fillna("")
+                stage1_df = enrich_stage1_dataframe(stage1_df)
                 output_paths = save_stage1_outputs(run_dir, stage1_df)
                 store_auto_coding_stage1_results(
                     run_dir=run_dir,
@@ -613,15 +754,19 @@ def literature_auto_coding_panel() -> None:
                 st.caption("你刚上传的附件已经按顺序放进“附件”列里了，每个附件一行；表格也可以继续往下新增。")
             else:
                 st.caption("这是第一步的目标表结构。你导入文献并点击生成后，这里会自动变成真实提取结果。")
+            preview_root = RUNTIME_ROOT / "seed_preview" / "auto_coding"
+            preview_df = build_attachment_seed_table(uploaded_seed, preview_root) if uploaded_seed else build_placeholder_stage1_table()
             st.data_editor(
-                build_attachment_seed_table(uploaded_seed) if uploaded_seed else build_placeholder_stage1_table(),
+                preview_df,
                 hide_index=True,
                 use_container_width=True,
                 height=520,
                 num_rows="dynamic",
                 column_config={
                     "序号": st.column_config.NumberColumn("序号", disabled=True, width="small"),
-                    "附件": st.column_config.TextColumn("附件", width="small"),
+                    "附件预览": st.column_config.ImageColumn("附件", width="small"),
+                    "附件": st.column_config.TextColumn("附件", width="medium"),
+                    "查看原文": st.column_config.LinkColumn("查看原文", width="small", display_text="打开"),
                     "主要概念": st.column_config.TextColumn("主要概念", width="medium"),
                     "主要观点": st.column_config.TextColumn("主要观点", width="large"),
                     "变量筛选prompt": st.column_config.TextColumn("变量筛选prompt", width="large"),
