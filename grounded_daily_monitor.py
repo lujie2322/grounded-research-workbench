@@ -25,6 +25,20 @@ from openpyxl import Workbook
 from batch_paper_fetch import discover_pdf_url, get_json, slugify, try_download
 
 
+class ChineseArgumentParser(argparse.ArgumentParser):
+    def format_help(self) -> str:
+        text = super().format_help()
+        replacements = {
+            "usage: ": "用法：",
+            "options:\n": "可选参数：\n",
+            "positional arguments:\n": "位置参数：\n",
+            "show this help message and exit": "显示这条帮助信息并退出",
+        }
+        for source, target in replacements.items():
+            text = text.replace(source, target)
+        return text
+
+
 DEFAULT_CONFIG: dict[str, Any] = {
     "project_name": "扎根文献每日监测",
     "queries": ["创业 即兴行为 扎根理论", "创业 资源视角 扎根理论"],
@@ -2321,11 +2335,11 @@ def write_daily_report(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Daily grounded-theory literature monitor.")
-    parser.add_argument("--config", type=Path, required=True, help="Path to JSON config file")
-    parser.add_argument("--ask", type=str, default="", help="Ask a question against the current literature corpus")
-    parser.add_argument("--generate-report", type=str, default="", help="Generate an industry report for a topic")
-    parser.add_argument("--skip-monitor", action="store_true", help="Reuse existing literature_table.csv without re-running retrieval")
+    parser = ChineseArgumentParser(description="扎根理论文献每日监测器")
+    parser.add_argument("--config", type=Path, required=True, help="JSON 配置文件路径")
+    parser.add_argument("--ask", type=str, default="", help="基于当前文献库提问")
+    parser.add_argument("--generate-report", type=str, default="", help="为某个主题生成行业报告")
+    parser.add_argument("--skip-monitor", action="store_true", help="跳过重新检索，直接复用现有 literature_table.csv")
     args = parser.parse_args()
 
     user_config = json.loads(args.config.read_text(encoding="utf-8"))

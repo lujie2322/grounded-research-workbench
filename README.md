@@ -107,9 +107,9 @@ python3 grounded_daily_monitor.py \
   - `Baostock` A 股行情与财务指标
   - `Yahoo Finance` 港股/美股行情与利润表摘要
   - `Akshare` 宏观、财务摘要、个股新闻
-  - `Google News RSS`
-  - `Gov.cn Policy Library`
-  - `Eastmoney Guba`
+  - `Google 新闻 RSS`
+  - `国务院政策库`
+  - `东方财富股吧`
   - `Stocktwits`
 - 报告能力：
   - 财务比对
@@ -185,4 +185,3 @@ flowchart LR
 - 扎根监测文档：[README_grounded_monitor.md](README_grounded_monitor.md)
 - 行业研究文档：[README_deep_research_workflow.md](README_deep_research_workflow.md)
 - 扎根提示词：[prompts/grounded_monitor_prompts.md](prompts/grounded_monitor_prompts.md)
-

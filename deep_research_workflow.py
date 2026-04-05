@@ -8,6 +8,20 @@ from pathlib import Path
 from deep_research import DeepResearchWorkflow, ResearchTask, WorkflowConfig
 
 
+class ChineseArgumentParser(argparse.ArgumentParser):
+    def format_help(self) -> str:
+        text = super().format_help()
+        replacements = {
+            "usage: ": "用法：",
+            "options:\n": "可选参数：\n",
+            "positional arguments:\n": "位置参数：\n",
+            "show this help message and exit": "显示这条帮助信息并退出",
+        }
+        for source, target in replacements.items():
+            text = text.replace(source, target)
+        return text
+
+
 DEFAULT_CONFIG = {
     "project_name": "行业深度研究工作流",
     "outdir": "/Users/jie/Desktop/editor/output/deep_research",
@@ -81,9 +95,10 @@ def merge_dict(base: dict, patch: dict) -> dict:
 
 
 def build_task(args: argparse.Namespace) -> ResearchTask:
+    mode = {"报告": "report", "分析": "analysis"}.get(args.mode, args.mode)
     return ResearchTask(
         task=args.task,
-        mode=args.mode,
+        mode=mode,
         market_scope=[item.strip() for item in args.market_scope.split(",") if item.strip()],
         symbols=[item.strip() for item in args.symbols.split(",") if item.strip()],
         metrics=[item.strip() for item in args.metrics.split(",") if item.strip()],
@@ -102,15 +117,15 @@ def load_config(path: Path | None) -> WorkflowConfig:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="End-to-end multi-agent deep research workflow")
-    parser.add_argument("--config", type=Path, default=None, help="Optional JSON config path")
-    parser.add_argument("--task", type=str, required=True, help="Research task or report request")
-    parser.add_argument("--mode", type=str, default="report", choices=["report", "analysis"])
-    parser.add_argument("--symbols", type=str, default="", help="Comma separated symbols, e.g. 600519,00700,TSLA")
-    parser.add_argument("--metrics", type=str, default="", help="Comma separated metrics")
-    parser.add_argument("--keywords", type=str, default="", help="Comma separated search keywords")
-    parser.add_argument("--market-scope", type=str, default="", help="Comma separated market scopes")
-    parser.add_argument("--report-style", type=str, default="professional")
+    parser = ChineseArgumentParser(description="端到端多智能体深度研究工作流")
+    parser.add_argument("--config", type=Path, default=None, help="可选的 JSON 配置文件路径")
+    parser.add_argument("--task", type=str, required=True, help="研究任务或报告请求")
+    parser.add_argument("--mode", type=str, default="report", choices=["report", "analysis", "报告", "分析"], help="运行模式：report/报告 或 analysis/分析")
+    parser.add_argument("--symbols", type=str, default="", help="逗号分隔的标的代码，例如 600519,00700,TSLA")
+    parser.add_argument("--metrics", type=str, default="", help="逗号分隔的指标列表")
+    parser.add_argument("--keywords", type=str, default="", help="逗号分隔的检索关键词")
+    parser.add_argument("--market-scope", type=str, default="", help="逗号分隔的市场范围")
+    parser.add_argument("--report-style", type=str, default="professional", help="报告风格，例如 professional 或 专业版")
     parser.add_argument("--output-name", type=str, default="")
     args = parser.parse_args()
 

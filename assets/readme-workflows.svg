@@ -38,7 +38,7 @@
 
   <rect x="652" y="480" width="448" height="104" rx="16" fill="#052E2B" stroke="#34D399" stroke-opacity="0.45"/>
   <text x="676" y="510" fill="#ECFDF5" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Aggregator</text>
-  <text x="676" y="538" fill="#D1FAE5" font-family="Arial, Helvetica, sans-serif" font-size="15">MECE / SWOT / pyramid structure report generation</text>
+  <text x="676" y="538" fill="#D1FAE5" font-family="Arial, Helvetica, sans-serif" font-size="15">按 MECE、SWOT 与金字塔结构生成研究报告</text>
   <text x="676" y="564" fill="#D1FAE5" font-family="Arial, Helvetica, sans-serif" font-size="15">Scorecard / risk matrix / priority evidence / markdown payload</text>
 
   <path d="M324 240V272" stroke="#7DD3FC" stroke-width="4" stroke-linecap="round"/>

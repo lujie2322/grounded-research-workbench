@@ -227,7 +227,7 @@ class AnalystAgent:
         )
         artifact.notes = [
             "本轮已优先尝试 Baostock 获取 A 股行情与财务数据，并使用 Yahoo Finance 补充港股、美股行情与财务快照。",
-            "政策检索来自国务院政策文件库官方接口，新闻检索来自 Google News RSS 与 Akshare 个股新闻。",
+            "政策检索来自国务院政策文件库官方接口，新闻检索来自 Google 新闻 RSS 与 Akshare 个股新闻。",
             "社区讨论当前来自东方财富股吧与 Stocktwits，用于形成新闻、政策、社区三层情绪结构。",
             "量化结果默认在本地 Python 沙箱中执行；当前环境未检测到 Docker。",
         ]
@@ -284,11 +284,11 @@ class AnalystAgent:
         freshness = self._freshness_boost(item.metadata.get("published_at"))
         direct = 1.2 if symbol_hits else 0.0
         source_boost = {
-            "news": {"Akshare News": 0.9, "Google News RSS": 0.6},
-            "policy": {"Gov.cn Policy Library": 0.8},
-            "community": {"Eastmoney Guba": 0.7, "Stocktwits": 0.5},
+            "news": {"Akshare 新闻": 0.9, "Google 新闻 RSS": 0.6},
+            "policy": {"国务院政策库": 0.8},
+            "community": {"东方财富股吧": 0.7, "Stocktwits": 0.5},
             "structured": {"Baostock": 0.9, "Yahoo Finance": 0.9, "Akshare": 0.5},
-            "qualitative": {"Local PDF": 0.4, "Local Text": 0.3},
+            "qualitative": {"本地 PDF": 0.4, "本地文本": 0.3},
         }.get(layer, {}).get(item.source_name, 0.0)
         if layer == "policy" and keyword_hits == 0 and title_hits == 0:
             source_boost -= 0.8
@@ -431,6 +431,7 @@ class AnalystAgent:
             tone = self._classify_tone(item, "policy")
             findings.append(
                 f"{item.title}：政策倾向 {tone}，{item.summary[:120]}，类别 {item.metadata.get('category', 'unknown')}"
+                .replace("unknown", "未标注")
             )
         return findings[:8] or ["当前未检索到足够的官方政策结果。"]
 
@@ -452,15 +453,15 @@ class AnalystAgent:
                 {
                     "标的": symbol,
                     "市场": str(item.metadata.get("market", "")).upper() or infer_market_label(symbol),
-                    "价格": "NA",
-                    "区间涨跌幅": "NA",
-                    "活跃度": "NA",
-                    "市值": "NA",
-                    "PE": "NA",
-                    "ROE": "NA",
-                    "净利率": "NA",
-                    "营收": "NA",
-                    "净利润": "NA",
+                    "价格": "暂无",
+                    "区间涨跌幅": "暂无",
+                    "活跃度": "暂无",
+                    "市值": "暂无",
+                    "PE": "暂无",
+                    "ROE": "暂无",
+                    "净利率": "暂无",
+                    "营收": "暂无",
+                    "净利润": "暂无",
                 },
             )
             dataset_type = item.metadata.get("dataset_type")
@@ -531,7 +532,7 @@ class AnalystAgent:
                     "偏中性": str(neutral),
                     "偏谨慎": str(cautious),
                     "主导情绪": dominant,
-                    "代表证据": sample or "NA",
+                    "代表证据": sample or "暂无",
                 }
             )
         return dashboard
@@ -545,11 +546,11 @@ class AnalystAgent:
         qualitative: list[CollectedItem],
     ) -> dict[str, list[str]]:
         layers = {
-            "financial": quantitative,
-            "news": news_items,
-            "policy": policy_items,
-            "community": community_items,
-            "qualitative": qualitative,
+            "财务数据": quantitative,
+            "新闻舆情": news_items,
+            "政策动向": policy_items,
+            "社区讨论": community_items,
+            "定性材料": qualitative,
         }
         result: dict[str, list[str]] = {}
         for layer, items in layers.items():
@@ -658,8 +659,8 @@ class AnalystAgent:
             labels = list(source_counter.keys())[: int(self.config.workflow.get("chart_top_n", 8))]
             values = [source_counter[label] for label in labels]
             ax.bar(labels, values, color="#5470C6")
-            ax.set_title("Evidence Source Mix")
-            ax.set_ylabel("Count")
+            ax.set_title("证据来源分布")
+            ax.set_ylabel("数量")
             plt.xticks(rotation=20, ha="right")
             plt.tight_layout()
             source_chart = chart_dir / "source_mix.png"
@@ -689,8 +690,8 @@ class AnalystAgent:
                 ax.plot(df["date"], norm, marker="o", linewidth=1.3, label=item.metadata.get("symbol", item.title))
                 plotted += 1
             if plotted:
-                ax.set_title("Normalized Price Comparison")
-                ax.set_ylabel("Base=100")
+                ax.set_title("标准化价格对比")
+                ax.set_ylabel("基准=100")
                 ax.tick_params(axis="x", rotation=25)
                 ax.legend()
                 plt.tight_layout()
@@ -886,10 +887,10 @@ class AggregatorAgent:
         for point in mece_points:
             lines.append(f"- {point}")
         lines.extend(["", "## SWOT"])
-        lines.append("- Strengths: " + ("；".join(swot_strengths) if swot_strengths else "当前机会信号有限"))
-        lines.append("- Weaknesses: 结构化行情、财报与宏观数据接入尚不完整")
-        lines.append("- Opportunities: " + ("；".join(analysis.opportunities[:3]) if analysis.opportunities else "待补充更多增长信号"))
-        lines.append("- Threats: " + ("；".join(swot_risks) if swot_risks else "待补充风险证据"))
+        lines.append("- 优势： " + ("；".join(swot_strengths) if swot_strengths else "当前机会信号有限"))
+        lines.append("- 劣势： 结构化行情、财报与宏观数据接入尚不完整")
+        lines.append("- 机会： " + ("；".join(analysis.opportunities[:3]) if analysis.opportunities else "待补充更多增长信号"))
+        lines.append("- 威胁： " + ("；".join(swot_risks) if swot_risks else "待补充风险证据"))
         lines.extend(["", "## 风险矩阵"])
         if risk_matrix:
             lines.extend(risk_matrix)
@@ -902,7 +903,7 @@ class AggregatorAgent:
             lines.append(f"- 机会：{item}")
         lines.extend(["", "## 重点证据"])
         for layer, evidence_list in analysis.priority_evidence.items():
-            lines.append(f"- {layer}: " + ("；".join(evidence_list[:3]) if evidence_list else "NA"))
+            lines.append(f"- {layer}： " + ("；".join(evidence_list[:3]) if evidence_list else "暂无"))
         lines.extend(["", "## 未来情景"])
         for item in analysis.scenarios:
             lines.append(f"- {item}")
@@ -981,7 +982,7 @@ class DeepResearchWorkflow:
         if self.workflow_settings.get("enable_analyst", True):
             analysis = self.analyst.analyze(task, plan, items)
         else:
-            analysis = AnalysisArtifact(notes=["Analyst disabled by workflow config."])
+            analysis = AnalysisArtifact(notes=["分析模块已在工作流配置中关闭。"])
             log_trace(self.trace_path, "Analyst", "skipped", "ok")
 
         if self.workflow_settings.get("enable_aggregator", True):
@@ -989,7 +990,7 @@ class DeepResearchWorkflow:
         else:
             report = ReportArtifact(
                 title=f"{task.task} 深度研究报告",
-                markdown="# Aggregator disabled\n",
+                markdown="# 报告汇总模块已关闭\n",
             )
             log_trace(self.trace_path, "Aggregator", "skipped", "ok")
 
@@ -1029,14 +1030,14 @@ class DeepResearchWorkflow:
 
 
 def re_safe_name(text: str) -> str:
-    return "".join(ch if ch.isalnum() or ch in {"_", "-"} else "_" for ch in text)[:80].strip("_") or "report"
+    return "".join(ch if ch.isalnum() or ch in {"_", "-"} else "_" for ch in text)[:80].strip("_") or "报告"
 
 
 def format_large_number(value: Any) -> str:
     try:
         number = float(value)
     except Exception:
-        return str(value or "NA")
+        return str(value or "暂无")
     abs_number = abs(number)
     if abs_number >= 1_000_000_000_000:
         return f"{number / 1_000_000_000_000:.2f}万亿"
@@ -1051,7 +1052,7 @@ def percent_or_value(value: Any) -> str:
     try:
         number = float(value)
     except Exception:
-        return str(value or "NA")
+        return str(value or "暂无")
     if -5.0 <= number <= 5.0:
         return f"{number * 100:.2f}%"
     return f"{number:.2f}"
@@ -1061,10 +1062,10 @@ def format_decimal(value: Any) -> str:
     try:
         return f"{float(value):.2f}"
     except Exception:
-        return str(value or "NA")
+        return str(value or "暂无")
 
 
-def normalize_metric_display(value: Any, fallback: str = "NA") -> str:
+def normalize_metric_display(value: Any, fallback: str = "暂无") -> str:
     try:
         number = float(value)
     except Exception:
@@ -1099,7 +1100,7 @@ def infer_market_label(symbol: str) -> str:
 def aggregate_market_signal(rows: list[dict[str, str]]) -> str:
     if not rows:
         return "中性"
-    values = [safe_float(row.get("区间涨跌幅")) for row in rows if row.get("区间涨跌幅") not in {"", "NA"}]
+    values = [safe_float(row.get("区间涨跌幅")) for row in rows if row.get("区间涨跌幅") not in {"", "NA", "暂无"}]
     if not values:
         return "中性"
     avg_return = sum(values) / len(values)
@@ -1117,7 +1118,7 @@ def markdown_table(columns: list[str], rows: list[dict[str, str]]) -> list[str]:
     separator = "| " + " | ".join(["---"] * len(columns)) + " |"
     lines = [header, separator]
     for row in rows:
-        lines.append("| " + " | ".join(str(row.get(column, "NA")) for column in columns) + " |")
+        lines.append("| " + " | ".join(str(row.get(column, "暂无")) for column in columns) + " |")
     return lines
 
 
@@ -1126,13 +1127,13 @@ def build_summary_points(analysis: AnalysisArtifact) -> list[str]:
     if analysis.scorecard_rows:
         leader = analysis.scorecard_rows[0]
         points.append(
-            f"财务领先标的暂为 {leader.get('标的', 'NA')}，区间涨跌幅 {leader.get('区间涨跌幅', 'NA')}，ROE {leader.get('ROE', 'NA')}。"
+            f"财务领先标的暂为 {leader.get('标的', '暂无')}，区间涨跌幅 {leader.get('区间涨跌幅', '暂无')}，ROE {leader.get('ROE', '暂无')}。"
         )
     dashboard = {row["层级"]: row for row in analysis.sentiment_dashboard}
     for layer in ["新闻舆情", "政策动向", "社区讨论"]:
         row = dashboard.get(layer)
         if row:
-            points.append(f"{layer} 当前主导情绪为 {row.get('主导情绪', '偏中性')}，代表证据是 {row.get('代表证据', 'NA')}。")
+            points.append(f"{layer} 当前主导情绪为 {row.get('主导情绪', '偏中性')}，代表证据是 {row.get('代表证据', '暂无')}。")
     if analysis.consistency_checks:
         points.append(f"一致性检查提示：{analysis.consistency_checks[0]}")
     return points[:5] or ["当前还未形成稳定的摘要页结论。"]

@@ -16,7 +16,7 @@
     - `Baostock` A 股 K 线、盈利能力、杜邦分析
     - `Yahoo Finance` 港股、美股 K 线、估值快照与利润表摘要
     - `Akshare` 宏观指标、财务摘要、财务分析指标、个股新闻
-    - Google News RSS 新闻检索
+    - Google 新闻 RSS 新闻检索
     - 国务院政策文件库官方接口检索
     - 东方财富股吧与 `Stocktwits` 社区讨论
 - `Analyst`
@@ -35,9 +35,9 @@
   - `Baostock`：A 股行情与财务指标
   - `Yahoo Finance`：港股/美股行情、估值、利润表摘要
   - `Akshare`：宏观、财务摘要、个股新闻
-  - `Google News RSS`：新闻舆情
-  - `Gov.cn Policy Library`：政策动向
-  - `Eastmoney Guba + Stocktwits`：社区讨论
+  - `Google 新闻 RSS`：新闻舆情
+  - `国务院政策库`：政策动向
+  - `东方财富股吧 + Stocktwits`：社区讨论
 
 ## 裁剪工作流
 

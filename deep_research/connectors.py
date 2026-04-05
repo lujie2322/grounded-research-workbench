@@ -152,7 +152,7 @@ class FinanceConnector:
                                 item_id=f"baostock:kline:{symbol}",
                                 source_type="structured",
                                 source_name="Baostock",
-                                title=f"{symbol} A-share kline",
+                                title=f"{symbol} A股行情",
                                 summary=summary,
                                 content=df.tail(90).to_csv(index=False),
                                 metadata={
@@ -181,7 +181,7 @@ class FinanceConnector:
                                 item_id=f"baostock:profit:{symbol}:{year}Q{quarter}",
                                 source_type="structured",
                                 source_name="Baostock",
-                                title=f"{symbol} profit data",
+                                title=f"{symbol} 盈利数据",
                                 summary=summary,
                                 content=profit_df.to_csv(index=False),
                                 metadata={"symbol": symbol, "dataset_type": "profit", "year": year, "quarter": quarter},
@@ -203,7 +203,7 @@ class FinanceConnector:
                                 item_id=f"baostock:dupont:{symbol}:{year}Q{quarter}",
                                 source_type="structured",
                                 source_name="Baostock",
-                                title=f"{symbol} dupont data",
+                                title=f"{symbol} 杜邦分析",
                                 summary=summary,
                                 content=dupont_df.to_csv(index=False),
                                 metadata={"symbol": symbol, "dataset_type": "dupont", "year": year, "quarter": quarter},
@@ -262,7 +262,7 @@ class FinanceConnector:
                             item_id=f"yahoo:kline:{symbol}",
                             source_type="structured",
                             source_name="Yahoo Finance",
-                            title=f"{symbol} {market.upper()} kline",
+                            title=f"{symbol} {'港股' if market == 'hk' else '美股'}行情",
                             summary=(
                                 f"{symbol} {market_label}日线共 {len(history_df)} 行，最新收盘 {last_close:.2f}，"
                                 f"区间涨跌幅 {return_pct:.2f}%，平均成交量 {avg_volume:.0f}"
@@ -307,12 +307,12 @@ class FinanceConnector:
                         item_id=f"yahoo:snapshot:{symbol}",
                         source_type="structured",
                         source_name="Yahoo Finance",
-                        title=f"{symbol} valuation snapshot",
+                        title=f"{symbol} 估值快照",
                         summary=(
-                            f"{symbol} 快照：市值 {snapshot.get('market_cap') or 'NA'}，"
-                            f"当前价 {snapshot.get('current_price') or 'NA'}，"
-                            f"ROE {snapshot.get('return_on_equity') or 'NA'}，"
-                            f"净利率 {snapshot.get('profit_margin') or 'NA'}"
+                            f"{symbol} 快照：市值 {snapshot.get('market_cap') or '暂无'}，"
+                            f"当前价 {snapshot.get('current_price') or '暂无'}，"
+                            f"ROE {snapshot.get('return_on_equity') or '暂无'}，"
+                            f"净利率 {snapshot.get('profit_margin') or '暂无'}"
                         ),
                         content=json.dumps(snapshot, ensure_ascii=False, indent=2),
                         metadata={"symbol": symbol, "market": market, "dataset_type": "equity_snapshot", **snapshot},
@@ -350,8 +350,8 @@ class FinanceConnector:
                         item_id=f"yahoo:income_statement:{symbol}",
                         source_type="structured",
                         source_name="Yahoo Finance",
-                        title=f"{symbol} income statement",
-                        summary=f"{symbol} 利润表摘要，最新报告期 {recent_col or 'NA'}",
+                        title=f"{symbol} 利润表",
+                        summary=f"{symbol} 利润表摘要，最新报告期 {recent_col or '暂无'}",
                         content=summary_df.to_csv(index=False),
                         metadata={
                             "symbol": symbol,
@@ -388,7 +388,7 @@ class FinanceConnector:
                         item_id=f"akshare:financial_abstract:{symbol}",
                         source_type="structured",
                         source_name="Akshare",
-                        title=f"{symbol} financial abstract",
+                        title=f"{symbol} 财务摘要",
                         summary=summary,
                         content=abstract_df.head(25).to_csv(index=False),
                         metadata={"symbol": symbol, "dataset_type": "financial_abstract", "latest_col": latest_col},
@@ -406,7 +406,7 @@ class FinanceConnector:
                         item_id=f"akshare:analysis_indicator:{symbol}",
                         source_type="structured",
                         source_name="Akshare",
-                        title=f"{symbol} analysis indicator",
+                        title=f"{symbol} 财务分析指标",
                         summary=summary,
                         content=indicator_df.head(12).to_csv(index=False),
                         metadata={"symbol": symbol, "dataset_type": "analysis_indicator", "metrics": metrics},
@@ -435,8 +435,8 @@ class FinanceConnector:
                 CollectedItem(
                     item_id="macro:task_context",
                     source_type="macro",
-                    source_name="Task Context",
-                    title="task macro context",
+                    source_name="任务上下文",
+                    title="任务宏观上下文",
                     summary=f"当前任务关键词：{keyword_text}",
                     content=keyword_text,
                     metadata={"dataset_type": "task_context"},
@@ -486,7 +486,7 @@ class FinanceConnector:
                     CollectedItem(
                         item_id=f"akshare:stock_news:{symbol}:{title[:20]}",
                         source_type="news",
-                        source_name="Akshare News",
+                        source_name="Akshare 新闻",
                         title=title,
                         summary=content[:220],
                         content=content[:3000],
@@ -529,7 +529,7 @@ class NewsConnector:
                     CollectedItem(
                         item_id=node.findtext("link", default=""),
                         source_type="news",
-                        source_name="Google News RSS",
+                        source_name="Google 新闻 RSS",
                         title=title,
                         summary=description[:220],
                         content=description[:3000],
@@ -604,7 +604,7 @@ class PolicyConnector:
                         CollectedItem(
                             item_id=str(row.get("url", "")),
                             source_type="policy",
-                            source_name="Gov.cn Policy Library",
+                            source_name="国务院政策库",
                             title=title,
                             summary=strip_html(str(row.get("summary", "")))[:260],
                             content=strip_html(str(row.get("summary", "")))[:3000],
@@ -745,7 +745,7 @@ class CommunityConnector:
                     CollectedItem(
                         item_id=full_url,
                         source_type="community",
-                        source_name="Eastmoney Guba",
+                        source_name="东方财富股吧",
                         title=title,
                         summary=body[:220],
                         content=body[:3000],
@@ -783,7 +783,7 @@ class LocalStructuredConnector:
                 CollectedItem(
                     item_id=str(path),
                     source_type="structured",
-                    source_name="Local Structured Data",
+                    source_name="本地结构化数据",
                     title=path.name,
                     summary=f"本地结构化数据，{len(df)} 行，字段：{', '.join(map(str, df.columns[:10]))}",
                     content=df.head(50).to_csv(index=False),
@@ -835,7 +835,7 @@ class LocalTextConnector:
                     CollectedItem(
                         item_id=str(file_path),
                         source_type="unstructured",
-                        source_name="Local Text",
+                        source_name="本地文本",
                         title=file_path.stem,
                         summary=text[:500].replace("\n", " "),
                         content=text[:8000],
@@ -872,7 +872,7 @@ class LocalPdfConnector:
                     CollectedItem(
                         item_id=str(pdf_path),
                         source_type="unstructured",
-                        source_name="Local PDF",
+                        source_name="本地 PDF",
                         title=pdf_path.stem,
                         summary=text[:500].replace("\n", " "),
                         content=text[:8000],

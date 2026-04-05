@@ -15,6 +15,20 @@ from pathlib import Path
 USER_AGENT = "paper-fetcher/1.0 (mailto:openalex@example.com)"
 
 
+class ChineseArgumentParser(argparse.ArgumentParser):
+    def format_help(self) -> str:
+        text = super().format_help()
+        replacements = {
+            "usage: ": "用法：",
+            "options:\n": "可选参数：\n",
+            "positional arguments:\n": "位置参数：\n",
+            "show this help message and exit": "显示这条帮助信息并退出",
+        }
+        for source, target in replacements.items():
+            text = text.replace(source, target)
+        return text
+
+
 def slugify(text: str, limit: int = 100) -> str:
     text = re.sub(r"[^\w\s-]", "", text, flags=re.UNICODE)
     text = re.sub(r"[\s_-]+", "-", text.strip(), flags=re.UNICODE)
@@ -242,7 +256,7 @@ def process_title(title: str, pdf_dir: Path) -> dict:
 
         result["status"] = "metadata_only"
         if not result["note"]:
-            result["note"] = "matched record but no open-access pdf url"
+            result["note"] = "已匹配到记录，但未找到开放获取 PDF 链接"
         return result
     except Exception as e:
         result["status"] = "error"
@@ -251,16 +265,16 @@ def process_title(title: str, pdf_dir: Path) -> dict:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Batch fetch open-access papers from a title list."
+    parser = ChineseArgumentParser(
+        description="根据标题列表批量抓取开放获取论文。"
     )
-    parser.add_argument("titles_file", type=Path, help="UTF-8 text file, one title per line")
+    parser.add_argument("titles_file", type=Path, help="UTF-8 文本文件，每行一个标题")
     parser.add_argument("--outdir", type=Path, default=Path("./paper_fetch_output"))
-    parser.add_argument("--delay", type=float, default=0.4, help="Delay between requests")
+    parser.add_argument("--delay", type=float, default=0.4, help="请求之间的间隔秒数")
     parser.add_argument(
         "--retry-metadata",
         action="store_true",
-        help="Retry rows previously marked as metadata_only using landing-page PDF discovery",
+        help="对之前标记为 metadata_only 的记录再次尝试，通过落地页发现 PDF",
     )
     args = parser.parse_args()
 
