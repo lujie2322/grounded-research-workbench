@@ -8,6 +8,10 @@ from pathlib import Path
 from deep_research import DeepResearchWorkflow, ResearchTask, WorkflowConfig
 
 
+BASE_DIR = Path(__file__).resolve().parent
+DEFAULT_OUTPUT_DIR = BASE_DIR / "output"
+
+
 class ChineseArgumentParser(argparse.ArgumentParser):
     def format_help(self) -> str:
         text = super().format_help()
@@ -24,19 +28,18 @@ class ChineseArgumentParser(argparse.ArgumentParser):
 
 DEFAULT_CONFIG = {
     "project_name": "行业深度研究工作流",
-    "outdir": "/Users/jie/Desktop/editor/output/deep_research",
-    "memory_path": "/Users/jie/Desktop/editor/output/deep_research/workflow_memory.json",
-    "trace_path": "/Users/jie/Desktop/editor/output/deep_research/workflow_trace.jsonl",
-    "literature_csv": "/Users/jie/Desktop/editor/output/grounded_monitor_integration/literature_table.csv",
-    "theme_memory_path": "/Users/jie/Desktop/editor/output/grounded_monitor_integration/theme_memory.json",
-    "compact_context_path": "/Users/jie/Desktop/editor/output/grounded_monitor_integration/compact_context.md",
+    "outdir": str(DEFAULT_OUTPUT_DIR / "deep_research"),
+    "memory_path": str(DEFAULT_OUTPUT_DIR / "deep_research" / "workflow_memory.json"),
+    "trace_path": str(DEFAULT_OUTPUT_DIR / "deep_research" / "workflow_trace.jsonl"),
+    "literature_csv": str(DEFAULT_OUTPUT_DIR / "grounded_monitor" / "literature_table.csv"),
+    "theme_memory_path": str(DEFAULT_OUTPUT_DIR / "grounded_monitor" / "theme_memory.json"),
+    "compact_context_path": str(DEFAULT_OUTPUT_DIR / "grounded_monitor" / "compact_context.md"),
     "local_text_paths": [
-        "/Users/jie/Desktop/editor/output/grounded_monitor_integration",
-        "/Users/jie/Desktop/editor/output/grounded_monitor_smoke",
+        str(DEFAULT_OUTPUT_DIR / "grounded_monitor"),
     ],
     "structured_data_paths": [],
     "local_pdf_paths": [
-        "/Users/jie/Desktop/editor/paper_fetch_output/pdfs",
+        str(BASE_DIR / "paper_fetch_output" / "pdfs"),
     ],
     "workflow": {
         "enable_searcher": True,

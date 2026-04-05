@@ -17,3 +17,4 @@ config/*.v2.json
 config/*.v3.json
 
 .pytest_cache/
+webui_runtime/

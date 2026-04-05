@@ -26,6 +26,94 @@
 - 专业报告输出：自动组织成 MECE、SWOT、金字塔结构的行业研究报告。
 - 可追溯流程：运行状态、搜索历史、下载历史、记忆文件、agent trace 都会保留下来。
 
+## 安装与运行
+
+### 1. 本地命令行运行
+
+```bash
+git clone https://github.com/lujie2322/grounded-research-workbench.git
+cd grounded-research-workbench
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+然后你可以直接运行两条主线：
+
+```bash
+python3 grounded_daily_monitor.py --config config/grounded_monitor.example.json
+python3 deep_research_workflow.py --config config/deep_research_workflow.example.json --task "比较腾讯、苹果和特斯拉在平台生态与资本市场表现上的差异"
+```
+
+### 2. 网页界面运行
+
+这个仓库现在已经自带中文网页界面，适合老师、同学或非开发者直接使用：
+
+```bash
+python3 -m streamlit run streamlit_app.py
+```
+
+启动后你可以在网页里完成：
+
+- 上传论文或 PDF
+- 输入研究主题词
+- 运行扎根文献监测
+- 基于文献库提问
+- 一键生成行业报告
+- 生成多智能体深度研究报告
+
+### 3. Docker 运行
+
+如果你希望别人不用自己配环境，可以直接用 Docker：
+
+```bash
+docker build -t grounded-research-workbench .
+docker run --rm -p 8501:8501 grounded-research-workbench
+```
+
+然后浏览器打开：
+
+```text
+http://localhost:8501
+```
+
+## 发布友好特性
+
+这个仓库已经补上了适合公开发布的基础设施：
+
+- `requirements.txt`：统一 Python 依赖
+- `LICENSE`：MIT 开源许可证
+- `Dockerfile`：一键打包网页版本
+- `.github/workflows/ci.yml`：基础 CI，自动做依赖安装和脚本检查
+- `streamlit_app.py`：中文网页入口
+- `.streamlit/config.toml`：网页主题和服务配置
+
+## 最推荐的使用方式
+
+如果你是：
+
+- 研究者或开发者：直接 `pip install -r requirements.txt`
+- 想分享给老师、同学、团队成员：优先用 `python3 -m streamlit run streamlit_app.py`
+- 想给更多人公开体验：把 Docker 版本部署到云端
+
+## 如何让更多人真正用上
+
+只把代码放在 GitHub 上还不够。更适合传播的方式是：
+
+1. GitHub 仓库放源码、文档和示例配置
+2. Streamlit 网页版提供实际入口
+3. Docker 版本保证环境一致
+4. 再把网页部署到云端，例如：
+   - Streamlit Community Cloud
+   - Hugging Face Spaces
+   - Railway
+   - Render
+
+这样别人会有两种使用路径：
+
+- 能写代码的人：直接 clone 仓库本地运行
+- 不想配环境的人：直接打开在线网页使用
+
 ## 仓库结构
 
 ![Workflow Overview](assets/readme-workflows.svg)
@@ -43,8 +131,15 @@
 ├── config/
 │   ├── grounded_monitor.example.json
 │   └── deep_research_workflow.example.json
+├── .github/workflows/
+│   └── ci.yml
+├── .streamlit/
+│   └── config.toml
 ├── prompts/
 │   └── grounded_monitor_prompts.md
+├── streamlit_app.py
+├── requirements.txt
+├── Dockerfile
 ├── scripts/
 └── README_grounded_monitor.md
 ```

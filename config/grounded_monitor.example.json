@@ -17,13 +17,13 @@
   "download_pdfs": true,
   "max_pdf_pages_for_coding": 30,
   "sleep_seconds": 0.5,
-  "outdir": "/Users/jie/Desktop/editor/output/grounded_monitor",
+  "outdir": "output/grounded_monitor",
   "baseline_paths": [
-    "/absolute/path/to/你的论文.pdf"
+    "data/baseline/你的论文.pdf"
   ],
   "local_library_paths": [
-    "/absolute/path/to/你的文献库",
-    "/absolute/path/to/Zotero导出PDF目录"
+    "data/library",
+    "data/zotero_pdfs"
   ],
   "max_local_papers": 20,
   "covered_topics": [
@@ -40,9 +40,7 @@
     "api_url": "",
     "api_key_env": "GROUNDED_TRANSLATE_API_KEY"
   },
-  "skill_dirs": [
-    "/Users/jie/.codex/skills"
-  ],
+  "skill_dirs": [],
   "agent": {
     "enabled": true,
     "max_turns": 12,

@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Compile Python files
+        run: |
+          python -m py_compile grounded_daily_monitor.py deep_research_workflow.py batch_paper_fetch.py deep_research/*.py streamlit_app.py
+
+      - name: Check CLI help
+        run: |
+          python grounded_daily_monitor.py --help
+          python deep_research_workflow.py --help
+          python batch_paper_fetch.py --help
+

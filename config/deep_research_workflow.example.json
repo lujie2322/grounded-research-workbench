@@ -1,18 +1,17 @@
 {
   "project_name": "行业深度研究工作流",
-  "outdir": "/Users/jie/Desktop/editor/output/deep_research",
-  "memory_path": "/Users/jie/Desktop/editor/output/deep_research/workflow_memory.json",
-  "trace_path": "/Users/jie/Desktop/editor/output/deep_research/workflow_trace.jsonl",
-  "literature_csv": "/Users/jie/Desktop/editor/output/grounded_monitor_integration/literature_table.csv",
-  "theme_memory_path": "/Users/jie/Desktop/editor/output/grounded_monitor_integration/theme_memory.json",
-  "compact_context_path": "/Users/jie/Desktop/editor/output/grounded_monitor_integration/compact_context.md",
+  "outdir": "output/deep_research",
+  "memory_path": "output/deep_research/workflow_memory.json",
+  "trace_path": "output/deep_research/workflow_trace.jsonl",
+  "literature_csv": "output/grounded_monitor/literature_table.csv",
+  "theme_memory_path": "output/grounded_monitor/theme_memory.json",
+  "compact_context_path": "output/grounded_monitor/compact_context.md",
   "local_text_paths": [
-    "/Users/jie/Desktop/editor/output/grounded_monitor_integration",
-    "/Users/jie/Desktop/editor/output/grounded_monitor_smoke"
+    "output/grounded_monitor"
   ],
   "structured_data_paths": [],
   "local_pdf_paths": [
-    "/Users/jie/Desktop/editor/paper_fetch_output/pdfs"
+    "paper_fetch_output/pdfs"
   ],
   "workflow": {
     "enable_searcher": true,

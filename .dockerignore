@@ -1,0 +1,12 @@
+.git
+.github
+__pycache__
+*.pyc
+*.pyo
+.DS_Store
+.venv
+venv
+output
+paper_fetch_output
+webui_runtime
+
