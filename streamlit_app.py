@@ -203,6 +203,303 @@ def render_markdown_file(path: Path, title: str) -> None:
     st.markdown(path.read_text(encoding="utf-8", errors="ignore"))
 
 
+def inject_auto_coding_styles() -> None:
+    st.markdown(
+        """
+<style>
+.auto-coding-shell {
+  border: 1px solid rgba(15, 118, 110, 0.12);
+  border-radius: 24px;
+  background: linear-gradient(180deg, #fcfffe 0%, #f4fbf9 100%);
+  padding: 22px 24px 24px 24px;
+  margin-bottom: 18px;
+}
+.auto-coding-kicker {
+  color: #0f766e;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.auto-coding-title {
+  font-size: 31px;
+  line-height: 1.15;
+  font-weight: 800;
+  color: #102a43;
+  margin: 0 0 8px 0;
+}
+.auto-coding-subtitle {
+  color: #486581;
+  font-size: 15px;
+  line-height: 1.7;
+  margin: 0;
+}
+.auto-stepper {
+  display: flex;
+  gap: 10px;
+  margin: 14px 0 22px 0;
+  flex-wrap: wrap;
+}
+.auto-step {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none !important;
+  background: #dcefe9;
+  color: #1f2933 !important;
+  padding: 14px 26px 14px 22px;
+  min-width: 220px;
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%, 14px 50%);
+  transition: transform .15s ease, filter .15s ease;
+}
+.auto-step:hover {
+  transform: translateY(-1px);
+  filter: brightness(0.98);
+}
+.auto-step.is-active {
+  background: linear-gradient(135deg, #0f766e 0%, #155e75 100%);
+  color: white !important;
+}
+.auto-step-index {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.22);
+  font-size: 12px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+.auto-step:not(.is-active) .auto-step-index {
+  background: rgba(15,118,110,0.12);
+  color: #0f766e;
+}
+.auto-step-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.auto-step-label {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.auto-step-meta {
+  font-size: 12px;
+  opacity: 0.82;
+  line-height: 1.2;
+}
+.auto-stage-card {
+  border: 1px solid rgba(15, 118, 110, 0.12);
+  border-radius: 18px;
+  padding: 18px;
+  background: white;
+  min-height: 128px;
+}
+.auto-stage-tag {
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #e6fffb;
+  color: #0f766e;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+</style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def current_auto_coding_step() -> str:
+    step = st.query_params.get("auto_coding_step", "step1")
+    return step if step in {"step1", "step2", "step3"} else "step1"
+
+
+def render_auto_coding_stepper(step: str) -> None:
+    steps = [
+        ("step1", "01", "文献信息提取", "论文信息、变量、Prompt"),
+        ("step2", "02", "编码深化分析", "开放编码、主轴编码、命题"),
+        ("step3", "03", "结果汇总输出", "表格、报告、批注与导出"),
+    ]
+    html = ['<div class="auto-stepper">']
+    for key, index, label, meta in steps:
+        active_class = " is-active" if key == step else ""
+        html.append(
+            f'<a class="auto-step{active_class}" href="?page=文献自动化编码&auto_coding_step={key}">'
+            f'<span class="auto-step-index">{index}</span>'
+            f'<span class="auto-step-copy"><span class="auto-step-label">{label}</span>'
+            f'<span class="auto-step-meta">{meta}</span></span></a>'
+        )
+    html.append("</div>")
+    st.markdown("".join(html), unsafe_allow_html=True)
+
+
+def build_placeholder_stage1_table(rows: int = 18) -> pd.DataFrame:
+    prompt = "我将按照学术文献解构框架，系统分析这篇关于企业人工智能采纳的实证研究论文。"
+    data = []
+    for index in range(1, rows + 1):
+        data.append(
+            {
+                "序号": index,
+                "附件": "",
+                "主要概念": "",
+                "主要观点": "",
+                "变量筛选prompt": prompt,
+            }
+        )
+    return pd.DataFrame(data)
+
+
+def literature_auto_coding_panel() -> None:
+    inject_auto_coding_styles()
+    step = current_auto_coding_step()
+
+    st.markdown(
+        """
+<div class="auto-coding-shell">
+  <div class="auto-coding-kicker">Literature Automation</div>
+  <h1 class="auto-coding-title">文献自动化编码</h1>
+  <p class="auto-coding-subtitle">
+    这个功能会拆成三个部分。当前先把新的交互界面搭起来：
+    顶部是可点击的箭头式步骤导航，第一步对应你给的文献信息与变量提取主表。
+  </p>
+</div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    render_auto_coding_stepper(step)
+
+    if step == "step1":
+        st.markdown("### 第一步：文献信息与变量提取")
+        col1, col2, col3 = st.columns(3)
+        col1.markdown(
+            """
+<div class="auto-stage-card">
+  <div class="auto-stage-tag">当前阶段</div>
+  <h4 style="margin:0 0 8px 0;color:#102a43;">基础信息抽取</h4>
+  <p style="margin:0;color:#52606d;line-height:1.7;">
+    先提取作者、标题、期刊、年份、样本特征、分析方法等基础信息。
+  </p>
+</div>
+            """,
+            unsafe_allow_html=True,
+        )
+        col2.markdown(
+            """
+<div class="auto-stage-card">
+  <div class="auto-stage-tag">当前阶段</div>
+  <h4 style="margin:0 0 8px 0;color:#102a43;">变量筛选</h4>
+  <p style="margin:0;color:#52606d;line-height:1.7;">
+    把自变量、中介/调节变量、因变量、控制变量放进统一表格，方便后续编码。
+  </p>
+</div>
+            """,
+            unsafe_allow_html=True,
+        )
+        col3.markdown(
+            """
+<div class="auto-stage-card">
+  <div class="auto-stage-tag">当前阶段</div>
+  <h4 style="margin:0 0 8px 0;color:#102a43;">Prompt 准备</h4>
+  <p style="margin:0;color:#52606d;line-height:1.7;">
+    最后一列保留每篇文献的默认 Prompt，后面你可以继续修改或替换成自己的版本。
+  </p>
+</div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        stage1_df = build_placeholder_stage1_table()
+        st.markdown("### 主表预览")
+        st.caption("这就是你截图里那张表的第一版 UI：序号、附件、主要概念、主要观点、变量筛选 prompt。")
+        st.data_editor(
+            stage1_df,
+            hide_index=True,
+            use_container_width=True,
+            height=720,
+            column_config={
+                "序号": st.column_config.NumberColumn("序号", disabled=True, width="small"),
+                "附件": st.column_config.TextColumn("附件", width="small"),
+                "主要概念": st.column_config.TextColumn("主要概念", width="medium"),
+                "主要观点": st.column_config.TextColumn("主要观点", width="large"),
+                "变量筛选prompt": st.column_config.TextColumn("变量筛选prompt", width="large"),
+            },
+            key="auto-coding-stage1-ui",
+        )
+        st.info("这一版先只做 UI。下一轮我会把导入文献、自动提取基础信息和变量筛选，真正接到这张表里。")
+
+    elif step == "step2":
+        st.markdown("### 第二步：编码深化分析")
+        st.caption("这一部分先搭结构，不接功能。后面可以放开放编码、主轴编码、研究命题和未来研究方向。")
+        cols = st.columns(3)
+        cards = [
+            ("开放编码", "逐句抽取原始概念、变量线索与证据句。"),
+            ("主轴编码", "把前因、机制、结果、边界条件串成关系链。"),
+            ("命题整理", "汇总假设、命题、显著与不显著关系。"),
+        ]
+        for column, (title, desc) in zip(cols, cards):
+            column.markdown(
+                f"""
+<div class="auto-stage-card">
+  <div class="auto-stage-tag">预留步骤</div>
+  <h4 style="margin:0 0 8px 0;color:#102a43;">{title}</h4>
+  <p style="margin:0;color:#52606d;line-height:1.7;">{desc}</p>
+</div>
+                """,
+                unsafe_allow_html=True,
+            )
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {"模块": "开放编码", "状态": "待接入", "说明": "后续接你的第二步流程"},
+                    {"模块": "主轴编码", "状态": "待接入", "说明": "后续接变量关系链和命题整理"},
+                    {"模块": "未来研究编码", "状态": "待接入", "说明": "后续接研究方向和批注提炼"},
+                ]
+            ),
+            hide_index=True,
+            use_container_width=True,
+        )
+
+    else:
+        st.markdown("### 第三步：结果汇总输出")
+        st.caption("这一部分也先做 UI 结构，后面再接导出、汇总、批注和最终报告。")
+        cols = st.columns(3)
+        cards = [
+            ("总表汇总", "把多篇文献整理成统一总表。"),
+            ("报告输出", "生成文献解析报告、编码批注和汇总结论。"),
+            ("导出交付", "导出 Excel、Markdown、后续可扩展为 Word。"),
+        ]
+        for column, (title, desc) in zip(cols, cards):
+            column.markdown(
+                f"""
+<div class="auto-stage-card">
+  <div class="auto-stage-tag">预留步骤</div>
+  <h4 style="margin:0 0 8px 0;color:#102a43;">{title}</h4>
+  <p style="margin:0;color:#52606d;line-height:1.7;">{desc}</p>
+</div>
+                """,
+                unsafe_allow_html=True,
+            )
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {"输出项": "文献总表", "格式": "表格", "状态": "待接入"},
+                    {"输出项": "文献解析报告", "格式": "Markdown / Word", "状态": "待接入"},
+                    {"输出项": "编码批注", "格式": "附表", "状态": "待接入"},
+                ]
+            ),
+            hide_index=True,
+            use_container_width=True,
+        )
+
+
 def desktop_directory_map() -> dict[str, Path]:
     return {path.name: path for path in list_desktop_directories()}
 
@@ -776,6 +1073,7 @@ def home_panel() -> None:
         """
 现在这个入口已经按你的想法拆成了三类主功能：
 
+- `文献自动化编码`：新的三步式 UI，顶部箭头切换流程，先承接文献批量编码主流程
 - `论文编码`：导入相关文献内容，按批次自动做论文编码
 - `元分析`：导入研究文献，自动建元分析提取模板和批次工作区
 - `资料 / 访谈编码`：导入访谈、纪要、政策材料等，自动切割成编码分段
@@ -791,14 +1089,15 @@ def home_panel() -> None:
         """
     )
 
-    st.info("建议先从左侧的“论文编码工作台”开始，先跑一版批次清单和编码结果。")
+    st.info("建议先从左侧的“文献自动化编码”开始。这个新入口已经先把三步式界面搭好了，后面再逐步接入功能。")
 
-    st.markdown("### 当前三类功能")
+    st.markdown("### 当前功能结构")
     st.markdown(
         """
-1. 论文编码：最接近你现在已有的扎根文献工作流
-2. 元分析：先做资料整理、批次拆分和提取模板
-3. 资料 / 访谈编码：先做文本切割、编码包生成和分段整理
+1. 文献自动化编码：新的三步式主入口，先做 UI，再逐步接论文编码逻辑
+2. 论文编码工作台：现有批量论文编码功能，保留为旧版可运行入口
+3. 元分析：先做资料整理、批次拆分和提取模板
+4. 资料 / 访谈编码：先做文本切割、编码包生成和分段整理
         """
     )
     st.markdown("### 快速启动")
@@ -811,12 +1110,27 @@ def main() -> None:
     ensure_runtime_dirs()
     st.set_page_config(page_title="研究资料自动化工作台", page_icon="📚", layout="wide")
     st.sidebar.title("功能导航")
+    page_options = [
+        "首页",
+        "文献自动化编码",
+        "论文编码工作台",
+        "元分析工作台",
+        "资料 / 访谈编码工作台",
+        "行业深度研究报告",
+    ]
+    requested_page = st.query_params.get("page", "首页")
+    if requested_page not in page_options:
+        requested_page = "首页"
     page = st.sidebar.radio(
         "选择工作台",
-        options=["首页", "论文编码工作台", "元分析工作台", "资料 / 访谈编码工作台", "行业深度研究报告"],
+        options=page_options,
+        index=page_options.index(requested_page),
     )
+    st.query_params["page"] = page
     if page == "首页":
         home_panel()
+    elif page == "文献自动化编码":
+        literature_auto_coding_panel()
     elif page == "论文编码工作台":
         paper_coding_panel()
     elif page == "元分析工作台":
