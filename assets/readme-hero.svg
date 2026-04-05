@@ -1,0 +1,49 @@
+<svg width="1200" height="640" viewBox="0 0 1200 640" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="80" y1="40" x2="1120" y2="600" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F172A"/>
+      <stop offset="1" stop-color="#0B3B2E"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#FFFFFF" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.05"/>
+    </linearGradient>
+    <filter id="shadow" x="-20" y="-20" width="1240" height="680" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000000" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="640" rx="32" fill="url(#bg)"/>
+  <circle cx="1040" cy="110" r="180" fill="#10B981" fill-opacity="0.11"/>
+  <circle cx="175" cy="530" r="140" fill="#38BDF8" fill-opacity="0.10"/>
+  <g filter="url(#shadow)">
+    <rect x="60" y="72" width="1080" height="496" rx="28" fill="url(#card)" stroke="#FFFFFF" stroke-opacity="0.12"/>
+  </g>
+  <text x="92" y="158" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="20" letter-spacing="3">GROUNDed RESEARCH + DEEP REPORTING</text>
+  <text x="92" y="236" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="52" font-weight="700">Grounded Research</text>
+  <text x="92" y="300" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="52" font-weight="700">Workbench</text>
+  <text x="92" y="354" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="24">Literature coding, gap alerts, multi-source research, and industry reports in one repo.</text>
+
+  <rect x="92" y="410" width="314" height="108" rx="20" fill="#0F172A" fill-opacity="0.55" stroke="#38BDF8" stroke-opacity="0.32"/>
+  <text x="120" y="450" fill="#7DD3FC" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Grounded Monitor</text>
+  <text x="120" y="484" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="16">Hypotheses, variables, future directions,</text>
+  <text x="120" y="508" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="16">open coding, axial relations, gap alerts.</text>
+
+  <rect x="434" y="410" width="314" height="108" rx="20" fill="#0F172A" fill-opacity="0.55" stroke="#34D399" stroke-opacity="0.35"/>
+  <text x="462" y="450" fill="#6EE7B7" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Deep Research DAG</text>
+  <text x="462" y="484" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="16">Finance, macro, policy, news, community,</text>
+  <text x="462" y="508" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="16">quant analysis and report generation.</text>
+
+  <rect x="776" y="146" width="286" height="310" rx="24" fill="#F8FAFC" fill-opacity="0.08" stroke="#FFFFFF" stroke-opacity="0.18"/>
+  <rect x="812" y="188" width="214" height="12" rx="6" fill="#93C5FD"/>
+  <rect x="812" y="222" width="172" height="12" rx="6" fill="#86EFAC"/>
+  <rect x="812" y="256" width="198" height="12" rx="6" fill="#FDE68A"/>
+  <rect x="812" y="302" width="102" height="44" rx="14" fill="#0EA5E9" fill-opacity="0.78"/>
+  <rect x="924" y="302" width="102" height="44" rx="14" fill="#10B981" fill-opacity="0.78"/>
+  <rect x="812" y="360" width="214" height="54" rx="18" fill="#111827" fill-opacity="0.75" stroke="#FFFFFF" stroke-opacity="0.14"/>
+  <text x="840" y="330" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700">Coding</text>
+  <text x="952" y="330" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700">Report</text>
+  <text x="836" y="393" fill="#D1FAE5" font-family="Arial, Helvetica, sans-serif" font-size="16">Tables, alerts, memory, charts</text>
+
+  <text x="92" y="102" fill="#86EFAC" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Academic workflow + industry workflow</text>
+</svg>
+
