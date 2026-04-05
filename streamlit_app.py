@@ -10,10 +10,6 @@ from typing import Any
 
 import pandas as pd
 import streamlit as st
-try:
-    from streamlit_sortables import sort_items
-except Exception:  # pragma: no cover
-    sort_items = None
 
 from research_batching import (
     DEFAULT_VARIABLE_PROMPT_TEMPLATE,
@@ -462,25 +458,8 @@ def store_auto_coding_stage1_results(
     st.session_state["auto_coding_stage1_xlsx"] = output_paths["xlsx"]
 
 
-def apply_attachment_order_to_rows(ordered_labels: list[str]) -> None:
-    rows = st.session_state.get("auto_coding_stage1_rows", [])
-    if not rows or not ordered_labels:
-        return
-    dataframe = pd.DataFrame(rows)
-    label_to_row = {
-        f"{int(row['序号']):02d}｜{row['附件']}": row
-        for _, row in dataframe.iterrows()
-        if str(row.get("附件", "")).strip()
-    }
-    ordered_rows = [label_to_row[label] for label in ordered_labels if label in label_to_row]
-    leftovers = [
-        row
-        for _, row in dataframe.iterrows()
-        if f"{int(row['序号']):02d}｜{row['附件']}" not in ordered_labels
-    ]
-    if not ordered_rows and not leftovers:
-        return
-    reordered = renumber_rows(pd.DataFrame(ordered_rows + leftovers))
+def persist_auto_coding_stage1_rows(dataframe: pd.DataFrame) -> None:
+    reordered = enrich_stage1_dataframe(renumber_rows(dataframe))
     st.session_state["auto_coding_stage1_rows"] = reordered.to_dict(orient="records")
     run_dir_raw = st.session_state.get("auto_coding_stage1_run", "")
     if run_dir_raw:
@@ -489,39 +468,50 @@ def apply_attachment_order_to_rows(ordered_labels: list[str]) -> None:
         st.session_state["auto_coding_stage1_xlsx"] = edited_output["xlsx"]
 
 
-def render_attachment_sorter(detail_df: pd.DataFrame) -> None:
-    sortable_df = detail_df[detail_df["附件"].fillna("").astype(str).str.strip() != ""].copy()
-    if sortable_df.empty:
+def move_attachment_row(position: int, delta: int) -> None:
+    rows = st.session_state.get("auto_coding_stage1_rows", [])
+    if not rows:
         return
-    labels = [f"{int(row['序号']):02d}｜{row['附件']}" for _, row in sortable_df.iterrows()]
-    st.markdown("### 附件排序器")
-    st.caption("按住拖拽下面的附件条目调整顺序。松开后，第一步主表会同步重排。")
-    if sort_items is None:
-        st.info("当前环境还没有拖拽组件，已自动降级为普通查看。安装依赖后这里会变成可拖拽排序。")
-        st.write(labels)
+    dataframe = enrich_stage1_dataframe(pd.DataFrame(rows))
+    attached = dataframe[dataframe["附件"].fillna("").astype(str).str.strip() != ""].copy()
+    blanks = dataframe[dataframe["附件"].fillna("").astype(str).str.strip() == ""].copy()
+    if attached.empty:
         return
-    ordered_labels = sort_items(
-        labels,
-        direction="vertical",
-        key="auto-coding-attachment-sorter",
-        custom_style="""
-        .sortable-component { padding: 0; }
-        .sortable-item {
-          background: linear-gradient(180deg, #f8fffd 0%, #eefbf6 100%);
-          border: 1px solid rgba(15,118,110,0.18);
-          border-radius: 14px;
-          padding: 12px 14px;
-          margin: 8px 0;
-          font-size: 14px;
-          font-weight: 600;
-          color: #102a43;
-          box-shadow: 0 10px 24px rgba(15,118,110,0.06);
-        }
-        """,
-    )
-    if ordered_labels != labels:
-        apply_attachment_order_to_rows(ordered_labels)
-        st.rerun()
+    target = max(0, min(len(attached) - 1, position + delta))
+    if target == position:
+        return
+    rows_list = attached.to_dict(orient="records")
+    item = rows_list.pop(position)
+    rows_list.insert(target, item)
+    persist_auto_coding_stage1_rows(pd.DataFrame(rows_list + blanks.to_dict(orient="records")))
+
+
+def render_attachment_manager(detail_df: pd.DataFrame) -> None:
+    attachment_df = detail_df[detail_df["附件"].fillna("").astype(str).str.strip() != ""].copy()
+    if attachment_df.empty:
+        return
+    st.markdown("### 附件管理")
+    st.caption("这里改成稳定可用的排序方式。点击上移或下移后，第一步主表会同步重排并重新编号。")
+    total = len(attachment_df)
+    for position, (_, row) in enumerate(attachment_df.iterrows()):
+        preview_col, meta_col, action_col = st.columns([1.05, 3.2, 1.5])
+        preview_path = str(row.get("附件预览", "")).strip()
+        if preview_path:
+            preview_col.image(preview_path, use_container_width=True)
+        else:
+            preview_col.caption("无预览")
+        meta_col.markdown(f"**{position + 1}. {row['附件']}**")
+        meta_col.caption(f"批次：{row.get('批次', '') or '未分配'}")
+        meta_col.markdown(f"[查看原文]({row.get('查看原文', '')})")
+        up_disabled = position == 0
+        down_disabled = position == total - 1
+        up_col, down_col = action_col.columns(2)
+        if up_col.button("上移", key=f"move-up-{position}", disabled=up_disabled, use_container_width=True):
+            move_attachment_row(position, -1)
+            st.rerun()
+        if down_col.button("下移", key=f"move-down-{position}", disabled=down_disabled, use_container_width=True):
+            move_attachment_row(position, 1)
+            st.rerun()
 
 
 def render_document_actions(selected_row: pd.Series) -> None:
@@ -587,7 +577,7 @@ def render_auto_coding_stage1_results() -> None:
     if run_dir_text:
         download_col3.caption(f"运行目录：`{run_dir_text}`")
 
-    render_attachment_sorter(enrich_stage1_dataframe(pd.DataFrame(edited_df)))
+    render_attachment_manager(enrich_stage1_dataframe(pd.DataFrame(edited_df)))
 
     st.markdown("### 论文详情查看")
     detail_df = enrich_stage1_dataframe(pd.DataFrame(edited_df))
