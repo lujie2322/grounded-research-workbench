@@ -88,6 +88,36 @@ def save_uploaded_files(files: list[Any], target_dir: Path) -> list[str]:
     return saved
 
 
+def reorder_files_by_upload_order(files: list[Any], uploaded_files: list[Any]) -> list[Any]:
+    if not uploaded_files:
+        return files
+    upload_order = {uploaded.name: index for index, uploaded in enumerate(uploaded_files)}
+    ordered: list[tuple[int, int, Any]] = []
+    for index, item in enumerate(files):
+        priority = upload_order.get(Path(item.path).name, len(upload_order) + index)
+        ordered.append((priority, index, item))
+    ordered.sort(key=lambda row: (row[0], row[1]))
+    return [item for _, _, item in ordered]
+
+
+def build_attachment_seed_table(uploaded_files: list[Any], rows: int = 18) -> pd.DataFrame:
+    prompt = "我将按照学术文献解构框架，系统分析这篇关于企业人工智能采纳的实证研究论文。"
+    attachment_names = [uploaded.name for uploaded in uploaded_files]
+    total_rows = max(rows, len(attachment_names) + 8)
+    data = []
+    for index in range(1, total_rows + 1):
+        data.append(
+            {
+                "序号": index,
+                "附件": attachment_names[index - 1] if index - 1 < len(attachment_names) else "",
+                "主要概念": "",
+                "主要观点": "",
+                "变量筛选prompt": prompt,
+            }
+        )
+    return pd.DataFrame(data)
+
+
 def base_grounded_config(run_dir: Path) -> dict[str, Any]:
     return {
         "project_name": "网页端论文编码",
@@ -387,6 +417,7 @@ def render_auto_coding_stage1_results() -> None:
         hide_index=True,
         use_container_width=True,
         height=720,
+        num_rows="dynamic",
         column_config={
             "序号": st.column_config.NumberColumn("序号", disabled=True, width="small"),
             "附件预览": st.column_config.ImageColumn("附件", help="自动生成的附件预览图", width="small"),
@@ -577,12 +608,17 @@ def literature_auto_coding_panel() -> None:
             render_auto_coding_stage1_results()
         else:
             st.markdown("### 主表预览")
-            st.caption("这是第一步的目标表结构。你导入文献并点击生成后，这里会自动变成真实提取结果。")
+            uploaded_seed = source_inputs["uploaded_files"] if source_inputs["uploaded_files"] else []
+            if uploaded_seed:
+                st.caption("你刚上传的附件已经按顺序放进“附件”列里了，每个附件一行；表格也可以继续往下新增。")
+            else:
+                st.caption("这是第一步的目标表结构。你导入文献并点击生成后，这里会自动变成真实提取结果。")
             st.data_editor(
-                build_placeholder_stage1_table(),
+                build_attachment_seed_table(uploaded_seed) if uploaded_seed else build_placeholder_stage1_table(),
                 hide_index=True,
                 use_container_width=True,
                 height=520,
+                num_rows="dynamic",
                 column_config={
                     "序号": st.column_config.NumberColumn("序号", disabled=True, width="small"),
                     "附件": st.column_config.TextColumn("附件", width="small"),
@@ -698,6 +734,7 @@ def prepare_batches(
         upload_dir=upload_dir,
     )
     files = scan_source_files(input_paths, allowed_suffixes=allowed_suffixes)
+    files = reorder_files_by_upload_order(files, uploaded_files)
     batches = split_into_batches(
         files,
         max_files_per_batch=max_files_per_batch,
@@ -985,6 +1022,7 @@ def paper_coding_panel() -> None:
             hide_index=True,
             use_container_width=True,
             height=680,
+            num_rows="dynamic",
             column_config={
                 "序号": st.column_config.NumberColumn("序号", disabled=True, width="small"),
                 "附件预览": st.column_config.ImageColumn("附件", help="自动生成的附件预览图", width="small"),
