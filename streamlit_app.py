@@ -505,6 +505,26 @@ def apply_policy_overrides(items: list[dict[str, Any]], overrides: dict[str, dic
     return applied
 
 
+def save_policy_overrides_from_rows(rows: list[dict[str, Any]]) -> None:
+    overrides = read_json(POLICY_OVERRIDES_PATH, {})
+    for row in rows:
+        item_key = str(row.get("item_key", "")).strip()
+        if not item_key:
+            continue
+        source_type = str(row.get("条目类型", "")).strip() or "policy"
+        category = str(row.get("人工分类", "")).strip() or "相关政策"
+        core_flag = str(row.get("核心政策", "")).strip() in {"是", "True", "true", "1"}
+        issuer = str(row.get("人工发布机构", "")).strip()
+        overrides[item_key] = {
+            "source_type": source_type,
+            "category": category,
+            "is_core": core_flag,
+            "issuing_body": issuer,
+            "source_name": issuer,
+        }
+    write_json(POLICY_OVERRIDES_PATH, overrides)
+
+
 def merge_policy_snapshot_items(policy_items: list[dict[str, Any]], news_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     merged: dict[str, dict[str, Any]] = {}
     for item in policy_items + news_items:
@@ -513,6 +533,61 @@ def merge_policy_snapshot_items(policy_items: list[dict[str, Any]], news_items: 
         if existing is None or len(str(item.get("summary") or item.get("摘要") or "")) > len(str(existing.get("summary") or existing.get("摘要") or "")):
             merged[key] = dict(item)
     return list(merged.values())
+
+
+def build_policy_gap_insights(stage1_rows: list[dict[str, Any]], policy_items: list[dict[str, Any]]) -> dict[str, Any]:
+    if not stage1_rows or not policy_items:
+        return {"gap_rows": [], "suggestions": []}
+    concept_pool: set[str] = set()
+    variable_pool: set[str] = set()
+    for row in stage1_rows:
+        for field in ["主要概念", "自变量", "中介/调节变量", "因变量/结果变量", "控制变量", "未来研究编码"]:
+            raw = str(row.get(field, "")).replace("；", "、")
+            for part in raw.split("、"):
+                part = part.strip()
+                if part and part != "待补充":
+                    concept_pool.add(part)
+                    variable_pool.add(part)
+
+    policy_theme_map = {
+        "生成式人工智能": ["生成式人工智能", "大模型", "内容生成", "算法治理"],
+        "算法与监管治理": ["算法", "监管", "治理", "备案", "安全"],
+        "算力与基础设施": ["算力", "基础设施", "智算", "数据中心", "网络"],
+        "智能制造与场景创新": ["智能制造", "场景", "工业", "机器人", "应用"],
+        "数据要素与安全": ["数据", "数据安全", "隐私", "语料", "信息保护"],
+    }
+
+    gap_rows: list[dict[str, str]] = []
+    seen_themes: set[str] = set()
+    for item in policy_items:
+        text = f"{item.get('title', item.get('名称', item.get('标题', '')))} {item.get('summary', item.get('摘要', ''))}"
+        matched_theme = ""
+        matched_terms: list[str] = []
+        for theme, terms in policy_theme_map.items():
+            hits = [term for term in terms if term in text]
+            if hits:
+                matched_theme = theme
+                matched_terms = hits
+                break
+        if not matched_theme:
+            continue
+        overlap = [term for term in matched_terms if term in concept_pool or term in variable_pool]
+        is_gap = not overlap
+        if not is_gap or matched_theme in seen_themes:
+            continue
+        seen_themes.add(matched_theme)
+        gap_rows.append(
+            {
+                "政策主题": matched_theme,
+                "命中词": "、".join(matched_terms),
+                "对应条目": item.get("title") or item.get("名称") or item.get("标题") or "",
+                "缺口判断": "你的论文暂未明显覆盖",
+                "补充方向": f"建议把“{matched_theme}”纳入文献综述、变量讨论或未来研究方向。",
+            }
+        )
+
+    suggestions = [row["补充方向"] for row in gap_rows[:5]]
+    return {"gap_rows": gap_rows, "suggestions": suggestions}
 
 
 def build_policy_context_bundle(target_dir: Path) -> dict[str, str]:
@@ -559,6 +634,24 @@ def build_policy_context_bundle(target_dir: Path) -> dict[str, str]:
         "combined_md": str(combined_md),
         "context_dir": str(context_dir),
     }
+
+
+def load_latest_stage1_rows() -> list[dict[str, Any]]:
+    stage1_csv = st.session_state.get("latest_paper_stage1_csv", "")
+    if stage1_csv and Path(stage1_csv).exists():
+        try:
+            return pd.read_csv(stage1_csv).fillna("").to_dict(orient="records")
+        except Exception:
+            return []
+    latest_run = st.session_state.get("latest_paper_coding_run", "")
+    if latest_run:
+        candidate = Path(latest_run) / "stage1_outputs" / "paper_stage1_table.csv"
+        if candidate.exists():
+            try:
+                return pd.read_csv(candidate).fillna("").to_dict(orient="records")
+            except Exception:
+                return []
+    return []
 
 
 def policy_snapshot_available() -> bool:
@@ -631,16 +724,47 @@ def render_policy_correction_panel(snapshot: dict[str, Any]) -> None:
     for item in merged_items[:80]:
         preview_rows.append(
             {
+                "item_key": policy_item_key(item),
                 "标题": item.get("title") or item.get("名称") or item.get("标题") or "",
                 "来源": item.get("source_name") or item.get("来源") or item.get("发布机构") or item.get("issuing_body") or "",
-                "类型": item.get("source_type", ""),
-                "分类": item.get("category", item.get("类型", "")),
-                "核心": "是" if bool(item.get("is_core", False)) else "否",
+                "条目类型": item.get("source_type", ""),
+                "人工分类": item.get("category", item.get("类型", "")),
+                "核心政策": "是" if bool(item.get("is_core", False)) else "否",
+                "人工发布机构": item.get("issuing_body") or item.get("发布机构") or item.get("source_name") or item.get("来源") or "",
                 "规则命中": "；".join(item.get("rule_hits") or []),
             }
         )
-    st.dataframe(pd.DataFrame(preview_rows), use_container_width=True, hide_index=True)
+    st.markdown("#### 批量校正表格")
+    edited_rows = st.data_editor(
+        pd.DataFrame(preview_rows),
+        use_container_width=True,
+        hide_index=True,
+        height=520,
+        num_rows="dynamic",
+        column_config={
+            "item_key": st.column_config.TextColumn("item_key", disabled=True, width="small"),
+            "标题": st.column_config.TextColumn("标题", disabled=True, width="large"),
+            "来源": st.column_config.TextColumn("来源", disabled=True, width="medium"),
+            "条目类型": st.column_config.SelectboxColumn("条目类型", options=["policy", "news"], width="small"),
+            "人工分类": st.column_config.SelectboxColumn("人工分类", options=["核心政策", "相关政策", "政策解读 / 新闻", "相关新闻"], width="medium"),
+            "核心政策": st.column_config.SelectboxColumn("核心政策", options=["是", "否"], width="small"),
+            "人工发布机构": st.column_config.TextColumn("人工发布机构", width="medium"),
+            "规则命中": st.column_config.TextColumn("规则命中", disabled=True, width="large"),
+        },
+        key="policy-batch-editor",
+    )
+    batch_col1, batch_col2 = st.columns(2)
+    if batch_col1.button("保存批量校正结果", type="primary", use_container_width=True):
+        save_policy_overrides_from_rows(pd.DataFrame(edited_rows).to_dict(orient="records"))
+        st.success("批量校正结果已保存。")
+        st.rerun()
+    if batch_col2.button("清空全部人工校正", use_container_width=True):
+        write_json(POLICY_OVERRIDES_PATH, {})
+        st.success("人工校正记录已清空。")
+        st.rerun()
 
+    st.markdown("---")
+    st.markdown("#### 单条精细校正")
     option_map = {}
     option_labels = []
     for item in merged_items:
@@ -716,6 +840,8 @@ def policy_digest_panel() -> None:
     news_updates = snapshot["news_updates"]
     daily_updates = snapshot["daily_updates"]
     daily_digest_path = snapshot["daily_digest_path"]
+    stage1_rows = load_latest_stage1_rows()
+    gap_insights = build_policy_gap_insights(stage1_rows, all_policies + news_updates)
     st.markdown(
         """
 <div class="policy-shell">
@@ -759,6 +885,16 @@ def policy_digest_panel() -> None:
     metric_col2.metric("全部政策", len(all_policies))
     metric_col3.metric("今日新增", len(daily_updates))
     metric_col4.metric("最近更新", str(summary.get("run_at", "尚未抓取"))[:16] or "尚未抓取")
+
+    if stage1_rows:
+        st.markdown("### 政策与论文联动提醒")
+        if gap_insights["gap_rows"]:
+            st.dataframe(pd.DataFrame(gap_insights["gap_rows"]), use_container_width=True, hide_index=True)
+            st.info("这些政策主题当前在你的论文变量、主要概念或未来研究编码里没有明显覆盖，适合优先补进综述、假设讨论或未来研究方向。")
+        else:
+            st.success("当前最新政策主题与你最近一次论文编码结果的主要概念和变量提取没有出现明显新增缺口。")
+    else:
+        st.info("还没有读取到最近一次论文编码结果，所以暂时无法生成“政策与论文联动提醒”。先跑一版论文编码工作台后，这里会自动联动。")
 
     info_col1, info_col2 = st.columns([1.45, 1])
     with info_col1:
