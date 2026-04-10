@@ -18,20 +18,20 @@
   <g filter="url(#shadow)">
     <rect x="60" y="72" width="1080" height="496" rx="28" fill="url(#card)" stroke="#FFFFFF" stroke-opacity="0.12"/>
   </g>
-  <text x="92" y="158" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="20" letter-spacing="3">GROUNDed RESEARCH + DEEP REPORTING</text>
+  <text x="92" y="158" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="20" letter-spacing="3">AI POLICY + GROUNDED CODING + DEEP REPORTING</text>
   <text x="92" y="236" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="52" font-weight="700">Grounded Research</text>
   <text x="92" y="300" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="52" font-weight="700">Workbench</text>
-  <text x="92" y="354" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="24">把文献编码、研究缺口提醒、多源研究与行业报告放进同一个仓库。</text>
+  <text x="92" y="354" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="24">把文献编码、政策联动、命题假设生成与行业报告放进同一个网页工作台。</text>
 
   <rect x="92" y="410" width="314" height="108" rx="20" fill="#0F172A" fill-opacity="0.55" stroke="#38BDF8" stroke-opacity="0.32"/>
-  <text x="120" y="450" fill="#7DD3FC" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Grounded Monitor</text>
-  <text x="120" y="484" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="16">Hypotheses, variables, future directions,</text>
-  <text x="120" y="508" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="16">open coding, axial relations, gap alerts.</text>
+  <text x="120" y="450" fill="#7DD3FC" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">文献自动化编码</text>
+  <text x="120" y="484" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="16">批量导入、自动切割、变量提取、</text>
+  <text x="120" y="508" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="16">命题草案与研究假设生成。</text>
 
   <rect x="434" y="410" width="314" height="108" rx="20" fill="#0F172A" fill-opacity="0.55" stroke="#34D399" stroke-opacity="0.35"/>
-  <text x="462" y="450" fill="#6EE7B7" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Deep Research DAG</text>
-  <text x="462" y="484" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="16">Finance, macro, policy, news, community,</text>
-  <text x="462" y="508" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="16">量化分析、证据归纳与研究报告生成。</text>
+  <text x="462" y="450" fill="#6EE7B7" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">AI 政策与行业报告</text>
+  <text x="462" y="484" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="16">政策抓取、核心政策校正、政策影响链、</text>
+  <text x="462" y="508" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="16">财务舆情融合与深度研究报告。</text>
 
   <rect x="776" y="146" width="286" height="310" rx="24" fill="#F8FAFC" fill-opacity="0.08" stroke="#FFFFFF" stroke-opacity="0.18"/>
   <rect x="812" y="188" width="214" height="12" rx="6" fill="#93C5FD"/>
@@ -40,9 +40,9 @@
   <rect x="812" y="302" width="102" height="44" rx="14" fill="#0EA5E9" fill-opacity="0.78"/>
   <rect x="924" y="302" width="102" height="44" rx="14" fill="#10B981" fill-opacity="0.78"/>
   <rect x="812" y="360" width="214" height="54" rx="18" fill="#111827" fill-opacity="0.75" stroke="#FFFFFF" stroke-opacity="0.14"/>
-  <text x="840" y="330" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700">Coding</text>
-  <text x="952" y="330" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700">Report</text>
-  <text x="836" y="393" fill="#D1FAE5" font-family="Arial, Helvetica, sans-serif" font-size="16">Tables, alerts, memory, charts</text>
+  <text x="840" y="330" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700">编码</text>
+  <text x="952" y="330" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700">报告</text>
+  <text x="836" y="393" fill="#D1FAE5" font-family="Arial, Helvetica, sans-serif" font-size="16">表格、政策、假设、图表</text>
 
-  <text x="92" y="102" fill="#86EFAC" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Academic workflow + industry workflow</text>
+  <text x="92" y="102" fill="#86EFAC" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Chinese research automation workbench</text>
 </svg>

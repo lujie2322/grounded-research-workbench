@@ -4,42 +4,42 @@
   <rect x="68" y="72" width="512" height="576" rx="24" fill="#0F172A"/>
   <rect x="620" y="72" width="512" height="576" rx="24" fill="#0B3B2E"/>
 
-  <text x="100" y="128" fill="#7DD3FC" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700">Grounded Literature Monitor</text>
-  <text x="652" y="128" fill="#86EFAC" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700">Deep Research Workflow</text>
+  <text x="100" y="128" fill="#7DD3FC" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700">文献自动化编码</text>
+  <text x="652" y="128" fill="#86EFAC" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700">政策联动行业报告</text>
 
   <rect x="100" y="168" width="448" height="72" rx="16" fill="#111827" stroke="#38BDF8" stroke-opacity="0.45"/>
-  <text x="124" y="198" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Search Sources</text>
-  <text x="124" y="224" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="15">Local Library / OpenAlex / arXiv / Semantic Scholar</text>
+  <text x="124" y="198" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">批量导入与自动切割</text>
+  <text x="124" y="224" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="15">桌面文件夹 / 上传文件 / 自动分批 / 附件表格</text>
 
   <rect x="100" y="272" width="448" height="72" rx="16" fill="#111827" stroke="#38BDF8" stroke-opacity="0.45"/>
-  <text x="124" y="302" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Coding Extraction</text>
-  <text x="124" y="328" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="15">Hypotheses / IV / Mediator / DV / Controls / Future Directions</text>
+  <text x="124" y="302" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">文献信息与变量提取</text>
+  <text x="124" y="328" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="15">作者 / 期刊 / 样本 / 方法 / 自变量 / 中介调节 / 因变量</text>
 
   <rect x="100" y="376" width="448" height="72" rx="16" fill="#111827" stroke="#38BDF8" stroke-opacity="0.45"/>
-  <text x="124" y="406" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Grounded Reasoning</text>
-  <text x="124" y="432" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="15">Open Codes / Axial Relations / Selective Proposition / Gap Focus</text>
+  <text x="124" y="406" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">关系链与缺口识别</text>
+  <text x="124" y="432" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="15">前因 -> 机制/调节 -> 结果 / 未来研究编码 / 论文缺口</text>
 
   <rect x="100" y="480" width="448" height="104" rx="16" fill="#111827" stroke="#38BDF8" stroke-opacity="0.45"/>
-  <text x="124" y="510" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Outputs</text>
-  <text x="124" y="538" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="15">CSV / XLSX / Daily Markdown Report</text>
-  <text x="124" y="564" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="15">Theme Memory / Agent Trace / QA / Industry Notes</text>
+  <text x="124" y="510" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">命题与假设输出</text>
+  <text x="124" y="538" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="15">研究命题 P / 研究假设 H / CSV / Excel / Markdown</text>
+  <text x="124" y="564" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="15">主题记忆 / 缺口提醒 / 编码表 / 导出文件</text>
 
   <rect x="652" y="168" width="448" height="72" rx="16" fill="#052E2B" stroke="#34D399" stroke-opacity="0.45"/>
-  <text x="676" y="198" fill="#ECFDF5" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Searcher</text>
-  <text x="676" y="224" fill="#D1FAE5" font-family="Arial, Helvetica, sans-serif" font-size="15">Task decomposition / keywords / focus entities / metrics</text>
+  <text x="676" y="198" fill="#ECFDF5" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">政策抓取</text>
+  <text x="676" y="224" fill="#D1FAE5" font-family="Arial, Helvetica, sans-serif" font-size="15">中国政府网 / 国务院政策库 / 国家网信办 / 新闻解读</text>
 
   <rect x="652" y="272" width="448" height="72" rx="16" fill="#052E2B" stroke="#34D399" stroke-opacity="0.45"/>
-  <text x="676" y="302" fill="#ECFDF5" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Collector</text>
-  <text x="676" y="328" fill="#D1FAE5" font-family="Arial, Helvetica, sans-serif" font-size="15">Baostock / Yahoo / Akshare / News / Policy / Community</text>
+  <text x="676" y="302" fill="#ECFDF5" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">分类与校正</text>
+  <text x="676" y="328" fill="#D1FAE5" font-family="Arial, Helvetica, sans-serif" font-size="15">核心政策 / 全部政策 / 批量人工校正 / 去重</text>
 
   <rect x="652" y="376" width="448" height="72" rx="16" fill="#052E2B" stroke="#34D399" stroke-opacity="0.45"/>
-  <text x="676" y="406" fill="#ECFDF5" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Analyst</text>
-  <text x="676" y="432" fill="#D1FAE5" font-family="Arial, Helvetica, sans-serif" font-size="15">Quant comparison / sentiment layers / consistency checks / charts</text>
+  <text x="676" y="406" fill="#ECFDF5" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">政策影响链</text>
+  <text x="676" y="432" fill="#D1FAE5" font-family="Arial, Helvetica, sans-serif" font-size="15">政策信号 -> 组织机制 -> 采纳绩效 / 风险机会</text>
 
   <rect x="652" y="480" width="448" height="104" rx="16" fill="#052E2B" stroke="#34D399" stroke-opacity="0.45"/>
-  <text x="676" y="510" fill="#ECFDF5" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Aggregator</text>
-  <text x="676" y="538" fill="#D1FAE5" font-family="Arial, Helvetica, sans-serif" font-size="15">按 MECE、SWOT 与金字塔结构生成研究报告</text>
-  <text x="676" y="564" fill="#D1FAE5" font-family="Arial, Helvetica, sans-serif" font-size="15">Scorecard / risk matrix / priority evidence / markdown payload</text>
+  <text x="676" y="510" fill="#ECFDF5" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">行业报告生成</text>
+  <text x="676" y="538" fill="#D1FAE5" font-family="Arial, Helvetica, sans-serif" font-size="15">财务 / 行情 / 新闻 / 政策 / 社区讨论融合分析</text>
+  <text x="676" y="564" fill="#D1FAE5" font-family="Arial, Helvetica, sans-serif" font-size="15">MECE / SWOT / 风险矩阵 / 重点证据 / 图表</text>
 
   <path d="M324 240V272" stroke="#7DD3FC" stroke-width="4" stroke-linecap="round"/>
   <path d="M324 344V376" stroke="#7DD3FC" stroke-width="4" stroke-linecap="round"/>

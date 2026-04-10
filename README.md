@@ -2,193 +2,108 @@
 
 ![Grounded Research Workbench](assets/readme-hero.svg)
 
-一个把“扎根理论文献编码”和“行业深度研究报告”放进同一套研究工作台里的仓库。
+一个面向学术研究、政策跟踪和行业报告生成的中文研究工作台。
 
-这个项目适合两类工作同时推进：
+它把三类原本分散的任务放在同一个网页里：
 
-- 学术研究：每天追踪新文献，抽取研究假设、理论命题、变量角色与未来研究方向，形成可继续写论文的编码表。
-- 行业研究：把财务、行情、新闻、政策、社区讨论接到同一条工作流里，生成结构化行业报告。
+- `文献自动化编码`：批量导入论文，自动切分、提取变量、生成命题与假设草案。
+- `人工智能政策汇总`：每日抓取中国人工智能相关政策与新闻，做核心政策分类、人工校正和政策-论文缺口分析。
+- `行业深度研究报告`：融合财务、行情、新闻、政策、社区讨论和本地资料，生成结构化、多章节、可追溯的行业报告。
 
-现在网页入口已经进一步拆成了三类导入与分析工作台：
+## 当前亮点
 
+| 能力 | 说明 |
+|:---|:---|
+| 文献批量导入 | 支持桌面文件夹、手动路径和网页上传，自动按文件数、页数和体积切成多个批次。 |
+| 论文编码表 | 提取题目、作者、期刊、年份、样本、方法、理论基础、变量角色、未来研究方向。 |
+| 变量关系链 | 从政策和文献中识别 `前因变量 -> 机制/调节变量 -> 结果变量`。 |
+| 命题与假设草案 | 自动把政策-论文缺口转成 `研究命题 P1/P2` 和 `研究假设 H1/H2`。 |
+| AI 政策库 | 抓取中国政府网、国务院政策库、国家网信办等来源，区分核心政策、全部政策、新闻解读。 |
+| 人工校正面板 | 支持批量修改政策分类、核心政策标记、发布机构和条目类型。 |
+| 政策影响链 | 行业报告会自动写入 `政策信号 -> 组织机制 -> 业务结果` 的政策影响链章节。 |
+| 多智能体报告 | `Orchestrator / Searcher / Collector / Analyst / Aggregator` 五智能体 DAG 生成研究报告。 |
+
+## 适合谁使用
+
+- 正在写文献综述、扎根理论、变量编码、研究假设整理的研究者。
+- 需要持续跟踪人工智能政策、监管变化和产业政策的人。
+- 想把论文资料、政策资料和行业研究统一管理的学生、老师或团队。
+- 需要一键生成行业报告、政策影响分析、公司对比材料的人。
+
+## 网页界面
+
+启动后，左侧会看到主要功能入口：
+
+- `人工智能政策汇总`
+- `文献自动化编码`
 - `论文编码工作台`
 - `元分析工作台`
 - `资料 / 访谈编码工作台`
+- `行业深度研究报告`
 
-## 为什么做这个仓库
+其中 `文献自动化编码` 是三步式流程：
 
-很多研究流程都卡在同一个问题上：搜集、整理、编码、比较、写作被切成了很多零散动作。这个仓库把这些动作重新组织成两条可复用的主线：
+1. `文献信息提取`
+2. `编码深化分析`
+3. `结果汇总输出`
 
-1. `grounded_daily_monitor.py`
-   面向扎根理论和文献综述写作，重点是“文献追踪 + 编码 + 缺口提醒”。
-2. `deep_research_workflow.py`
-   面向行业报告和公司研究，重点是“多源采集 + 定性定量分析 + 报告生成”。
+`人工智能政策汇总` 会提供：
 
-## 你可以得到什么
+- 核心政策
+- 全部政策
+- 每日抓取预览
+- 人工校正
+- 政策与论文联动提醒
+- 政策-论文缺口分析表
+- 政策驱动研究命题草案
+- 政策驱动研究假设草案
 
-- 每日新增文献表：题目、作者、年份、摘要、主题、来源一张表整理好。
-- 扎根编码结果：研究假设、理论命题、自变量、中介/调节变量、因变量、控制变量、未来研究方向与初级编码。
-- 研究缺口提醒：识别你论文里还没覆盖的新主题、新变量关系链、新命题方向。
-- 专业报告输出：自动组织成 MECE、SWOT、金字塔结构的行业研究报告。
-- 可追溯流程：运行状态、搜索历史、下载历史、记忆文件、agent trace 都会保留下来。
+## 快速开始
 
-## 安装与运行
-
-### 1. 本地命令行运行
+### 1. 克隆仓库
 
 ```bash
 git clone https://github.com/lujie2322/grounded-research-workbench.git
 cd grounded-research-workbench
+```
+
+### 2. 创建环境并安装依赖
+
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-然后你可以直接运行两条主线：
-
-```bash
-python3 grounded_daily_monitor.py --config config/grounded_monitor.example.json
-python3 deep_research_workflow.py --config config/deep_research_workflow.example.json --task "比较腾讯、苹果和特斯拉在平台生态与资本市场表现上的差异"
-```
-
-### 2. 网页界面运行
-
-这个仓库现在已经自带中文网页界面，适合老师、同学或非开发者直接使用：
+### 3. 打开中文网页
 
 ```bash
 python3 -m streamlit run streamlit_app.py
 ```
 
-启动后你可以在网页里完成：
+然后在浏览器打开：
 
-- 从桌面文件夹批量导入资料
-- 自动扫描并按文件数、页数、体积切割成多个批次
-- 运行论文编码
-- 生成元分析提取模板
-- 生成资料 / 访谈分段编码包
-- 继续生成行业深度研究报告
+```text
+http://localhost:8501
+```
 
-### 3. Docker 运行
-
-如果你希望别人不用自己配环境，可以直接用 Docker：
+### 4. Docker 运行
 
 ```bash
 docker build -t grounded-research-workbench .
 docker run --rm -p 8501:8501 grounded-research-workbench
 ```
 
-然后浏览器打开：
+## 命令行用法
 
-```text
-http://localhost:8501
-```
-
-## 发布友好特性
-
-这个仓库已经补上了适合公开发布的基础设施：
-
-- `requirements.txt`：统一 Python 依赖
-- `LICENSE`：MIT 开源许可证
-- `Dockerfile`：一键打包网页版本
-- `.github/workflows/ci.yml`：基础 CI，自动做依赖安装和脚本检查
-- `streamlit_app.py`：中文网页入口
-- `research_batching.py`：通用桌面导入、文件扫描、自动分批底座
-- `.streamlit/config.toml`：网页主题和服务配置
-
-## 最推荐的使用方式
-
-如果你是：
-
-- 研究者或开发者：直接 `pip install -r requirements.txt`
-- 想分享给老师、同学、团队成员：优先用 `python3 -m streamlit run streamlit_app.py`
-- 想给更多人公开体验：把 Docker 版本部署到云端
-
-## 如何让更多人真正用上
-
-只把代码放在 GitHub 上还不够。更适合传播的方式是：
-
-1. GitHub 仓库放源码、文档和示例配置
-2. Streamlit 网页版提供实际入口
-3. Docker 版本保证环境一致
-4. 再把网页部署到云端，例如：
-   - Streamlit Community Cloud
-   - Hugging Face Spaces
-   - Railway
-   - Render
-
-这样别人会有两种使用路径：
-
-- 能写代码的人：直接 clone 仓库本地运行
-- 不想配环境的人：直接打开在线网页使用
-
-## 仓库结构
-
-![Workflow Overview](assets/readme-workflows.svg)
-
-```text
-.
-├── grounded_daily_monitor.py
-├── deep_research_workflow.py
-├── deep_research/
-│   ├── connectors.py
-│   ├── workflow.py
-│   ├── models.py
-│   ├── memory.py
-│   └── llm.py
-├── config/
-│   ├── grounded_monitor.example.json
-│   └── deep_research_workflow.example.json
-├── .github/workflows/
-│   └── ci.yml
-├── .streamlit/
-│   └── config.toml
-├── prompts/
-│   └── grounded_monitor_prompts.md
-├── research_batching.py
-├── streamlit_app.py
-├── requirements.txt
-├── Dockerfile
-├── scripts/
-└── README_grounded_monitor.md
-```
-
-## 两条核心主线
-
-### 1. 扎根文献监测
-
-适合“先系统梳理已有文献，再从研究假设/命题和未来研究方向中做编码”的论文写法。
-
-当前已经支持：
-
-- 多源检索：本地文献库、OpenAlex、arXiv、Semantic Scholar
-- 字段抽取：标题、作者、年份、期刊、摘要、主题、来源
-- 扎根式编码：
-  - `hypotheses_propositions`
-  - `independent_vars`
-  - `mediator_moderator_vars`
-  - `dependent_vars`
-  - `control_vars`
-  - `future_research_directions`
-  - `future_direction_codes`
-- 关系提炼：
-  - `open_code_details`
-  - `axial_relations`
-  - `selective_proposition`
-  - `novel_relations`
-  - `gap_focus`
-- 输出：
-  - `literature_table.csv`
-  - `literature_table.xlsx`
-  - `daily_report_YYYY-MM-DD.md`
-
-快速运行：
+### 文献监测与编码
 
 ```bash
 python3 grounded_daily_monitor.py \
   --config config/grounded_monitor.example.json
 ```
 
-如果你想直接基于已有文献回答问题：
+基于已有文献库问答：
 
 ```bash
 python3 grounded_daily_monitor.py \
@@ -197,33 +112,7 @@ python3 grounded_daily_monitor.py \
   --ask "当前创业即兴行为研究中最常见的前因和边界条件是什么？"
 ```
 
-详细说明见 [README_grounded_monitor.md](README_grounded_monitor.md)。
-
-### 2. 行业深度研究工作流
-
-适合一句话触发多源研究，最后落成一份完整、多章节、可追溯的研究报告。
-
-当前已经支持：
-
-- 五智能体 DAG：`Orchestrator / Searcher / Collector / Analyst / Aggregator`
-- 数据源：
-  - `Baostock` A 股行情与财务指标
-  - `Yahoo Finance` 港股/美股行情与利润表摘要
-  - `Akshare` 宏观、财务摘要、个股新闻
-  - `Google 新闻 RSS`
-  - `国务院政策库`
-  - `东方财富股吧`
-  - `Stocktwits`
-- 报告能力：
-  - 财务比对
-  - 新闻舆情
-  - 政策动向
-  - 社区讨论
-  - 一致性校验
-  - 风险矩阵
-  - 重点证据
-
-快速运行：
+### 行业深度研究报告
 
 ```bash
 python3 deep_research_workflow.py \
@@ -235,56 +124,128 @@ python3 deep_research_workflow.py \
   --output-name "hk_us_cross_market_compare"
 ```
 
-详细说明见 [README_deep_research_workflow.md](README_deep_research_workflow.md)。
+### AI 政策抓取
 
-## 一张图看清工作流
+```bash
+python3 policy_digest_fetcher.py \
+  --outdir output/policy_digest
+```
+
+## 工作流总览
+
+![Workflow Overview](assets/readme-workflows.svg)
 
 ```mermaid
 flowchart LR
-    A["Research Question"] --> B["Searcher"]
-    B --> C["Collector"]
-    C --> D["Structured Data"]
-    C --> E["Unstructured Text"]
-    D --> F["Analyst"]
-    E --> F["Analyst"]
-    F --> G["Aggregator"]
-    G --> H["Research Report"]
-    C --> I["Grounded Coding"]
-    I --> J["Theme / Gap Alerts"]
+    A["批量导入论文 / 资料"] --> B["自动切割与分批"]
+    B --> C["变量与文献信息提取"]
+    C --> D["关系链缺口识别"]
+    D --> E["命题 P 与假设 H 草案"]
+
+    F["AI 政策 / 新闻每日抓取"] --> G["核心政策分类与人工校正"]
+    G --> D
+    G --> H["政策影响链"]
+
+    I["财务 / 行情 / 新闻 / 社区"] --> J["五智能体 DAG"]
+    H --> J
+    J --> K["行业深度研究报告"]
 ```
 
-## 典型输出
+## 输出文件
 
-- 扎根监测输出
-  - `literature_table.csv`
-  - `literature_table.xlsx`
-  - `daily_report_YYYY-MM-DD.md`
-  - `theme_memory.json`
-  - `agent_trace.jsonl`
-- 深度研究输出
-  - `*_report.md`
-  - `*_payload.json`
-  - `charts/`
-  - `workflow_trace.jsonl`
-  - `workflow_memory.json`
+### 文献自动化编码
 
-## 适用场景
+- `paper_stage1_table.csv`
+- `paper_stage1_table.xlsx`
+- `batch_manifest.json`
+- `inventory.csv`
+- `grounded_output/literature_table.xlsx`
 
-- 想模仿“先系统搜文献，再从变量和未来研究方向做编码”的论文写法。
-- 需要长期跟踪某个研究主题，持续发现新增文献和研究缺口。
-- 想把“文献研究”和“行业报告”放在同一套可复用代码里。
-- 需要一个可以继续扩展 API、skills、agent 和数据源的研究底座。
+### 政策汇总与论文联动
 
-## 下一步建议
+- `output/policy_digest/latest/core_policies.json`
+- `output/policy_digest/latest/all_policies.json`
+- `output/policy_digest/latest/news_updates.json`
+- `output/policy_digest/latest/policy_paper_gap_analysis.xlsx`
+- `output/policy_digest/latest/policy_proposition_drafts.xlsx`
+- `output/policy_digest/latest/policy_hypothesis_drafts.xlsx`
+- `output/policy_digest/policy_overrides.json`
 
-- 把你自己的论文文件填进 `baseline_paths`，让缺口提醒真正对齐你的论文内容。
-- 配置 OpenAI 兼容 API，让问答、翻译、报告和自动编码更完整。
-- 按你的研究方向继续扩展专用提示词、变量词典和行业模板。
+### 行业深度研究报告
 
-## 相关文件
+- `*_report.md`
+- `*_payload.json`
+- `charts/`
+- `workflow_trace.jsonl`
+- `workflow_memory.json`
 
-- 主文献监测脚本：[grounded_daily_monitor.py](grounded_daily_monitor.py)
-- 深度研究入口：[deep_research_workflow.py](deep_research_workflow.py)
-- 扎根监测文档：[README_grounded_monitor.md](README_grounded_monitor.md)
-- 行业研究文档：[README_deep_research_workflow.md](README_deep_research_workflow.md)
-- 扎根提示词：[prompts/grounded_monitor_prompts.md](prompts/grounded_monitor_prompts.md)
+## 项目结构
+
+```text
+.
+├── streamlit_app.py                  # 中文网页入口
+├── research_batching.py              # 批量导入、扫描、切割与分批
+├── grounded_daily_monitor.py         # 文献监测、编码、问答与报告
+├── policy_digest_fetcher.py          # AI 政策与新闻抓取
+├── deep_research_workflow.py         # 行业深度研究 CLI
+├── deep_research/
+│   ├── connectors.py                 # 财务、新闻、政策、社区和本地资料连接器
+│   ├── workflow.py                   # 五智能体 DAG 工作流
+│   ├── models.py                     # 数据模型
+│   ├── memory.py                     # 工作流记忆
+│   └── llm.py                        # OpenAI 兼容 API 调用
+├── config/
+│   ├── grounded_monitor.example.json
+│   └── deep_research_workflow.example.json
+├── prompts/
+│   └── grounded_monitor_prompts.md
+├── assets/
+│   ├── readme-hero.svg
+│   └── readme-workflows.svg
+├── requirements.txt
+├── Dockerfile
+├── LICENSE
+└── .github/workflows/ci.yml
+```
+
+## 数据源
+
+当前已接入或预留的来源包括：
+
+- 本地 PDF / Word / CSV / Excel / Markdown
+- OpenAlex
+- arXiv
+- Semantic Scholar
+- 中国政府网
+- 国务院政策库
+- 国家网信办
+- Baostock
+- Yahoo Finance
+- Akshare
+- Google News RSS
+- 东方财富股吧
+- Stocktwits
+
+## API 配置
+
+部分自动分析、问答、翻译和报告增强能力支持 OpenAI 兼容 API。你可以在配置文件中填写：
+
+- `api_url`
+- `model`
+- `api_key_env`
+
+然后在本地环境变量里放入对应 key。没有配置 API 时，软件仍会使用规则和模板生成基础结果。
+
+## 许可证
+
+本项目使用 MIT License。你可以自由使用、修改和二次开发，但请自行核验外部数据源的使用条款和抓取频率要求。
+
+## 当前定位
+
+这个仓库不是单一的“文献搜索工具”，而是一个正在逐步完善的中文研究自动化工作台。
+
+它的核心目标是：
+
+- 让论文编码不再手工重复劳动。
+- 让政策变化可以自动进入研究框架。
+- 让行业报告有真实数据、真实来源和可追溯链路。
