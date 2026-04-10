@@ -147,6 +147,48 @@ POLICY_NEWS_ITEMS = [
 
 POLICY_OUTPUT_ROOT = APP_ROOT / "output" / "policy_digest"
 POLICY_OVERRIDES_PATH = POLICY_OUTPUT_ROOT / "policy_overrides.json"
+POLICY_RELATION_RULES = [
+    {
+        "theme": "生成式人工智能治理",
+        "keywords": ["生成式人工智能", "大模型", "服务管理", "算法治理"],
+        "antecedent": ["监管规则", "治理要求", "合规压力"],
+        "mechanism": ["组织信任", "合规能力", "技术采纳意愿"],
+        "outcome": ["人工智能采纳", "技术应用绩效"],
+        "suggestion": "把生成式人工智能监管要求作为制度环境变量，引入合规能力或组织信任，检验其对 AI 采纳与绩效的影响。",
+    },
+    {
+        "theme": "场景创新与政策推动",
+        "keywords": ["场景创新", "示范应用", "试点", "应用场景"],
+        "antecedent": ["政策支持", "场景开放", "政府引导"],
+        "mechanism": ["资源获取", "组织学习", "创新协同"],
+        "outcome": ["AI采纳强度", "创新绩效"],
+        "suggestion": "把场景开放或政策支持视为前因变量，关注其通过组织学习、资源获取影响 AI 采纳和创新绩效。",
+    },
+    {
+        "theme": "算力与基础设施供给",
+        "keywords": ["算力", "智算", "数据中心", "基础设施", "网络"],
+        "antecedent": ["算力供给", "数字基础设施", "技术资源可得性"],
+        "mechanism": ["技术能力", "数据处理能力", "组织数字能力"],
+        "outcome": ["AI应用深度", "数字化转型绩效"],
+        "suggestion": "把算力供给和基础设施条件纳入技术环境变量，检验其通过组织数字能力影响 AI 应用深度。",
+    },
+    {
+        "theme": "数据要素与安全治理",
+        "keywords": ["数据要素", "数据安全", "隐私", "语料", "信息保护"],
+        "antecedent": ["数据治理要求", "数据安全压力", "数据资源质量"],
+        "mechanism": ["数据能力", "风险感知", "治理成熟度"],
+        "outcome": ["AI采纳意愿", "组织绩效"],
+        "suggestion": "把数据安全与数据治理要求纳入前因或边界条件，关注其对 AI 采纳意愿和组织绩效的影响。",
+    },
+    {
+        "theme": "智能制造与产业升级",
+        "keywords": ["智能制造", "工业", "机器人", "产业升级"],
+        "antecedent": ["产业政策支持", "制造场景需求", "技术升级压力"],
+        "mechanism": ["流程重构", "组织能力升级", "技术整合"],
+        "outcome": ["生产效率", "企业绩效", "竞争优势"],
+        "suggestion": "将智能制造政策纳入行业情境变量，检验其通过流程重构和能力升级作用于绩效提升。",
+    },
+]
 
 
 def ensure_runtime_dirs() -> None:
@@ -540,6 +582,10 @@ def build_policy_gap_insights(stage1_rows: list[dict[str, Any]], policy_items: l
         return {"gap_rows": [], "suggestions": []}
     concept_pool: set[str] = set()
     variable_pool: set[str] = set()
+    indep_pool: set[str] = set()
+    med_pool: set[str] = set()
+    dep_pool: set[str] = set()
+    relation_signatures: set[str] = set()
     for row in stage1_rows:
         for field in ["主要概念", "自变量", "中介/调节变量", "因变量/结果变量", "控制变量", "未来研究编码"]:
             raw = str(row.get(field, "")).replace("；", "、")
@@ -548,43 +594,63 @@ def build_policy_gap_insights(stage1_rows: list[dict[str, Any]], policy_items: l
                 if part and part != "待补充":
                     concept_pool.add(part)
                     variable_pool.add(part)
-
-    policy_theme_map = {
-        "生成式人工智能": ["生成式人工智能", "大模型", "内容生成", "算法治理"],
-        "算法与监管治理": ["算法", "监管", "治理", "备案", "安全"],
-        "算力与基础设施": ["算力", "基础设施", "智算", "数据中心", "网络"],
-        "智能制造与场景创新": ["智能制造", "场景", "工业", "机器人", "应用"],
-        "数据要素与安全": ["数据", "数据安全", "隐私", "语料", "信息保护"],
-    }
+        for field, pool in [
+            ("自变量", indep_pool),
+            ("中介/调节变量", med_pool),
+            ("因变量/结果变量", dep_pool),
+        ]:
+            raw = str(row.get(field, "")).replace("；", "、")
+            values = [part.strip() for part in raw.split("、") if part.strip() and part.strip() != "待补充"]
+            pool.update(values)
+        indeps = [part.strip() for part in str(row.get("自变量", "")).replace("；", "、").split("、") if part.strip() and part.strip() != "待补充"]
+        meds = [part.strip() for part in str(row.get("中介/调节变量", "")).replace("；", "、").split("、") if part.strip() and part.strip() != "待补充"]
+        deps = [part.strip() for part in str(row.get("因变量/结果变量", "")).replace("；", "、").split("、") if part.strip() and part.strip() != "待补充"]
+        for indep in indeps[:3]:
+            for dep in deps[:3]:
+                relation_signatures.add(f"{indep}->{dep}")
+                for med in meds[:2]:
+                    relation_signatures.add(f"{indep}->{med}->{dep}")
 
     gap_rows: list[dict[str, str]] = []
-    seen_themes: set[str] = set()
+    seen_signatures: set[str] = set()
     for item in policy_items:
         text = f"{item.get('title', item.get('名称', item.get('标题', '')))} {item.get('summary', item.get('摘要', ''))}"
-        matched_theme = ""
-        matched_terms: list[str] = []
-        for theme, terms in policy_theme_map.items():
-            hits = [term for term in terms if term in text]
-            if hits:
-                matched_theme = theme
-                matched_terms = hits
-                break
-        if not matched_theme:
-            continue
-        overlap = [term for term in matched_terms if term in concept_pool or term in variable_pool]
-        is_gap = not overlap
-        if not is_gap or matched_theme in seen_themes:
-            continue
-        seen_themes.add(matched_theme)
-        gap_rows.append(
-            {
-                "政策主题": matched_theme,
-                "命中词": "、".join(matched_terms),
-                "对应条目": item.get("title") or item.get("名称") or item.get("标题") or "",
-                "缺口判断": "你的论文暂未明显覆盖",
-                "补充方向": f"建议把“{matched_theme}”纳入文献综述、变量讨论或未来研究方向。",
-            }
-        )
+        for rule in POLICY_RELATION_RULES:
+            matched_terms = [term for term in rule["keywords"] if term in text]
+            if not matched_terms:
+                continue
+            antecedent_terms = rule["antecedent"]
+            mechanism_terms = rule["mechanism"]
+            outcome_terms = rule["outcome"]
+            antecedent_covered = any(term in indep_pool or term in concept_pool for term in antecedent_terms)
+            mechanism_covered = any(term in med_pool or term in concept_pool for term in mechanism_terms)
+            outcome_covered = any(term in dep_pool or term in concept_pool for term in outcome_terms)
+            signature = f"{rule['theme']}|{'/'.join(antecedent_terms[:1])}|{'/'.join(mechanism_terms[:1])}|{'/'.join(outcome_terms[:1])}"
+            if signature in seen_signatures:
+                continue
+            seen_signatures.add(signature)
+            if antecedent_covered and outcome_covered and mechanism_covered:
+                continue
+            coverage_parts = []
+            coverage_parts.append("前因已覆盖" if antecedent_covered else "前因缺口")
+            coverage_parts.append("机制已覆盖" if mechanism_covered else "机制缺口")
+            coverage_parts.append("结果已覆盖" if outcome_covered else "结果缺口")
+            missing_count = sum([not antecedent_covered, not mechanism_covered, not outcome_covered])
+            level = "高" if missing_count >= 2 else "中"
+            gap_rows.append(
+                {
+                    "政策主题": rule["theme"],
+                    "政策命中词": "、".join(matched_terms),
+                    "建议关系链": f"{antecedent_terms[0]} -> {mechanism_terms[0]} -> {outcome_terms[0]}",
+                    "前因变量": "、".join(antecedent_terms),
+                    "机制/调节变量": "、".join(mechanism_terms),
+                    "结果变量": "、".join(outcome_terms),
+                    "覆盖情况": "｜".join(coverage_parts),
+                    "缺口级别": level,
+                    "对应政策": item.get("title") or item.get("名称") or item.get("标题") or "",
+                    "补充方向": rule["suggestion"],
+                }
+            )
 
     suggestions = [row["补充方向"] for row in gap_rows[:5]]
     return {"gap_rows": gap_rows, "suggestions": suggestions}
@@ -634,6 +700,62 @@ def build_policy_context_bundle(target_dir: Path) -> dict[str, str]:
         "combined_md": str(combined_md),
         "context_dir": str(context_dir),
     }
+
+
+def save_policy_gap_analysis_bundle(snapshot: dict[str, Any], gap_insights: dict[str, Any]) -> dict[str, str]:
+    latest_dir = snapshot["latest_dir"]
+    latest_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = latest_dir / "policy_paper_gap_analysis.csv"
+    xlsx_path = latest_dir / "policy_paper_gap_analysis.xlsx"
+    md_path = latest_dir / "policy_paper_gap_analysis.md"
+    rows = gap_insights.get("gap_rows", [])
+    dataframe = pd.DataFrame(rows)
+    if not dataframe.empty:
+        dataframe.to_csv(csv_path, index=False)
+        dataframe.to_excel(xlsx_path, index=False)
+    else:
+        pd.DataFrame(
+            columns=[
+                "政策主题",
+                "政策命中词",
+                "建议关系链",
+                "前因变量",
+                "机制/调节变量",
+                "结果变量",
+                "覆盖情况",
+                "缺口级别",
+                "对应政策",
+                "补充方向",
+            ]
+        ).to_csv(csv_path, index=False)
+        pd.DataFrame().to_excel(xlsx_path, index=False)
+
+    lines = [
+        "# 政策-论文缺口分析表",
+        "",
+        f"- 生成时间：{datetime.now().isoformat(timespec='seconds')}",
+        f"- 关系链缺口数：{len(rows)}",
+        "",
+    ]
+    if rows:
+        for row in rows:
+            lines.extend(
+                [
+                    f"## {row['政策主题']}",
+                    "",
+                    f"- 建议关系链：{row['建议关系链']}",
+                    f"- 覆盖情况：{row['覆盖情况']}",
+                    f"- 缺口级别：{row['缺口级别']}",
+                    f"- 对应政策：{row['对应政策']}",
+                    f"- 补充方向：{row['补充方向']}",
+                    "",
+                ]
+            )
+    else:
+        lines.append("当前没有识别到明显的政策-论文关系链缺口。")
+        lines.append("")
+    md_path.write_text("\n".join(lines), encoding="utf-8")
+    return {"csv": str(csv_path), "xlsx": str(xlsx_path), "md": str(md_path)}
 
 
 def load_latest_stage1_rows() -> list[dict[str, Any]]:
@@ -842,6 +964,7 @@ def policy_digest_panel() -> None:
     daily_digest_path = snapshot["daily_digest_path"]
     stage1_rows = load_latest_stage1_rows()
     gap_insights = build_policy_gap_insights(stage1_rows, all_policies + news_updates)
+    gap_bundle = save_policy_gap_analysis_bundle(snapshot, gap_insights) if stage1_rows else {}
     st.markdown(
         """
 <div class="policy-shell">
@@ -889,8 +1012,24 @@ def policy_digest_panel() -> None:
     if stage1_rows:
         st.markdown("### 政策与论文联动提醒")
         if gap_insights["gap_rows"]:
+            gap_dl_col1, gap_dl_col2, gap_dl_col3 = st.columns(3)
+            gap_csv = Path(gap_bundle["csv"])
+            gap_xlsx = Path(gap_bundle["xlsx"])
+            gap_md = Path(gap_bundle["md"])
+            if gap_csv.exists():
+                gap_dl_col1.download_button("下载缺口分析 CSV", data=gap_csv.read_bytes(), file_name=gap_csv.name, mime="text/csv", use_container_width=True)
+            if gap_xlsx.exists():
+                gap_dl_col2.download_button(
+                    "下载缺口分析 Excel",
+                    data=gap_xlsx.read_bytes(),
+                    file_name=gap_xlsx.name,
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True,
+                )
+            if gap_md.exists():
+                gap_dl_col3.download_button("下载缺口分析 Markdown", data=gap_md.read_bytes(), file_name=gap_md.name, mime="text/markdown", use_container_width=True)
             st.dataframe(pd.DataFrame(gap_insights["gap_rows"]), use_container_width=True, hide_index=True)
-            st.info("这些政策主题当前在你的论文变量、主要概念或未来研究编码里没有明显覆盖，适合优先补进综述、假设讨论或未来研究方向。")
+            st.info("这里已经升级成关系链级提醒：会把政策映射到建议的前因变量、机制/调节变量和结果变量链条，再与你最近一次论文编码结果做覆盖对比。")
         else:
             st.success("当前最新政策主题与你最近一次论文编码结果的主要概念和变量提取没有出现明显新增缺口。")
     else:
