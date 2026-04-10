@@ -146,6 +146,7 @@ POLICY_NEWS_ITEMS = [
 ]
 
 POLICY_OUTPUT_ROOT = APP_ROOT / "output" / "policy_digest"
+POLICY_OVERRIDES_PATH = POLICY_OUTPUT_ROOT / "policy_overrides.json"
 
 
 def ensure_runtime_dirs() -> None:
@@ -489,18 +490,105 @@ def render_policy_cards(items: list[dict[str, str]], *, mode: str) -> None:
                 col2.link_button(button_label, url, use_container_width=True)
 
 
+def policy_item_key(item: dict[str, Any]) -> str:
+    return str(item.get("item_id") or item.get("url") or item.get("链接") or item.get("title") or item.get("标题") or item.get("名称") or "").strip()
+
+
+def apply_policy_overrides(items: list[dict[str, Any]], overrides: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    applied: list[dict[str, Any]] = []
+    for item in items:
+        copy = dict(item)
+        key = policy_item_key(copy)
+        if key and key in overrides:
+            copy.update({k: v for k, v in overrides[key].items() if v not in (None, "")})
+        applied.append(copy)
+    return applied
+
+
+def merge_policy_snapshot_items(policy_items: list[dict[str, Any]], news_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    merged: dict[str, dict[str, Any]] = {}
+    for item in policy_items + news_items:
+        key = policy_item_key(item) or json.dumps(item, ensure_ascii=False, sort_keys=True)
+        existing = merged.get(key)
+        if existing is None or len(str(item.get("summary") or item.get("摘要") or "")) > len(str(existing.get("summary") or existing.get("摘要") or "")):
+            merged[key] = dict(item)
+    return list(merged.values())
+
+
+def build_policy_context_bundle(target_dir: Path) -> dict[str, str]:
+    snapshot = load_policy_digest_snapshot()
+    core_policies = snapshot["core_policies"]
+    all_policies = snapshot["all_policies"]
+    news_updates = snapshot["news_updates"]
+    context_dir = target_dir / "policy_context"
+    context_dir.mkdir(parents=True, exist_ok=True)
+    policy_md = context_dir / "policy_context.md"
+    news_md = context_dir / "news_context.md"
+    combined_md = context_dir / "policy_news_digest.md"
+
+    policy_lines = ["# 人工智能政策补充材料", ""]
+    for item in core_policies[:20]:
+        title = item.get("title") or item.get("名称") or item.get("标题") or "未命名条目"
+        url = item.get("url") or item.get("链接") or ""
+        issuer = item.get("issuing_body") or item.get("发布机构") or item.get("来源") or ""
+        summary = item.get("summary") or item.get("摘要") or ""
+        policy_lines.extend([f"## {title}", "", f"- 发布机构：{issuer}", f"- 链接：{url}", f"- 摘要：{summary}", ""])
+    news_lines = ["# 人工智能政策新闻补充材料", ""]
+    for item in news_updates[:20]:
+        title = item.get("title") or item.get("名称") or item.get("标题") or "未命名条目"
+        url = item.get("url") or item.get("链接") or ""
+        source = item.get("source_name") or item.get("来源") or ""
+        summary = item.get("summary") or item.get("摘要") or ""
+        news_lines.extend([f"## {title}", "", f"- 来源：{source}", f"- 链接：{url}", f"- 摘要：{summary}", ""])
+    combined_lines = [
+        "# 人工智能政策与新闻研究补充包",
+        "",
+        f"- 核心政策数：{len(core_policies)}",
+        f"- 全部政策数：{len(all_policies)}",
+        f"- 新闻 / 解读数：{len(news_updates)}",
+        "",
+    ]
+    combined_lines.extend(policy_lines[2:])
+    combined_lines.extend(news_lines[2:])
+    policy_md.write_text("\n".join(policy_lines).strip() + "\n", encoding="utf-8")
+    news_md.write_text("\n".join(news_lines).strip() + "\n", encoding="utf-8")
+    combined_md.write_text("\n".join(combined_lines).strip() + "\n", encoding="utf-8")
+    return {
+        "policy_md": str(policy_md),
+        "news_md": str(news_md),
+        "combined_md": str(combined_md),
+        "context_dir": str(context_dir),
+    }
+
+
+def policy_snapshot_available() -> bool:
+    latest_dir = POLICY_OUTPUT_ROOT / "latest"
+    return (latest_dir / "all_policies.json").exists() or (latest_dir / "news_updates.json").exists()
+
+
 def load_policy_digest_snapshot() -> dict[str, Any]:
     latest_dir = POLICY_OUTPUT_ROOT / "latest"
     summary = read_json(latest_dir / "summary.json", {})
+    overrides = read_json(POLICY_OVERRIDES_PATH, {})
     run_date = str(summary.get("run_at", datetime.now().isoformat()))[:10]
+    merged_items = merge_policy_snapshot_items(
+        read_json(latest_dir / "all_policies.json", POLICY_ALL_ITEMS),
+        read_json(latest_dir / "news_updates.json", POLICY_NEWS_ITEMS),
+    )
+    merged_items = apply_policy_overrides(merged_items, overrides)
+    all_policies = [item for item in merged_items if str(item.get("source_type", "policy")) == "policy"]
+    core_policies = [item for item in all_policies if bool(item.get("is_core", item.get("层级") == "国家级核心政策"))]
+    news_updates = [item for item in merged_items if str(item.get("source_type", "policy")) != "policy"]
+    daily_updates = apply_policy_overrides(read_json(latest_dir / "daily_updates.json", []), overrides)
     return {
         "summary": summary,
-        "core_policies": read_json(latest_dir / "core_policies.json", POLICY_CORE_ITEMS),
-        "all_policies": read_json(latest_dir / "all_policies.json", POLICY_ALL_ITEMS),
-        "news_updates": read_json(latest_dir / "news_updates.json", POLICY_NEWS_ITEMS),
-        "daily_updates": read_json(latest_dir / "daily_updates.json", []),
+        "core_policies": core_policies or POLICY_CORE_ITEMS,
+        "all_policies": all_policies or POLICY_ALL_ITEMS,
+        "news_updates": news_updates or POLICY_NEWS_ITEMS,
+        "daily_updates": daily_updates,
         "latest_dir": latest_dir,
         "daily_digest_path": latest_dir / f"daily_digest_{run_date}.md",
+        "overrides": overrides,
     }
 
 
@@ -520,6 +608,103 @@ def run_policy_digest_fetch() -> dict[str, Any]:
         "stderr": stderr,
         "summary": extract_last_json_block(stdout),
     }
+
+
+def render_policy_correction_panel(snapshot: dict[str, Any]) -> None:
+    merged_items = merge_policy_snapshot_items(snapshot["all_policies"], snapshot["news_updates"])
+    merged_items = sorted(
+        merged_items,
+        key=lambda item: (
+            0 if bool(item.get("is_core", False)) else 1,
+            str(item.get("published_at", item.get("年份", ""))),
+            str(item.get("title") or item.get("名称") or item.get("标题") or ""),
+        ),
+        reverse=True,
+    )
+    st.markdown("### 人工校正面板")
+    st.caption("这里可以对自动分类结果做人工修正。保存后，核心政策、全部政策和每日抓取页会立即按你的结果刷新。")
+    if not merged_items:
+        st.info("当前还没有可校正的政策或新闻条目。先点击上方“立即抓取政策与新闻”。")
+        return
+
+    preview_rows: list[dict[str, Any]] = []
+    for item in merged_items[:80]:
+        preview_rows.append(
+            {
+                "标题": item.get("title") or item.get("名称") or item.get("标题") or "",
+                "来源": item.get("source_name") or item.get("来源") or item.get("发布机构") or item.get("issuing_body") or "",
+                "类型": item.get("source_type", ""),
+                "分类": item.get("category", item.get("类型", "")),
+                "核心": "是" if bool(item.get("is_core", False)) else "否",
+                "规则命中": "；".join(item.get("rule_hits") or []),
+            }
+        )
+    st.dataframe(pd.DataFrame(preview_rows), use_container_width=True, hide_index=True)
+
+    option_map = {}
+    option_labels = []
+    for item in merged_items:
+        title = item.get("title") or item.get("名称") or item.get("标题") or "未命名条目"
+        source_name = item.get("source_name") or item.get("来源") or item.get("发布机构") or item.get("issuing_body") or "未知来源"
+        label = f"{title}｜{source_name}"
+        option_labels.append(label)
+        option_map[label] = item
+
+    selected_label = st.selectbox("选择要校正的条目", options=option_labels, key="policy-correction-item")
+    selected_item = option_map[selected_label]
+    item_key = policy_item_key(selected_item)
+    existing_override = snapshot.get("overrides", {}).get(item_key, {})
+
+    form_col1, form_col2 = st.columns(2)
+    corrected_source_type = form_col1.selectbox(
+        "条目类型",
+        options=["policy", "news"],
+        index=0 if str(existing_override.get("source_type", selected_item.get("source_type", "policy"))) == "policy" else 1,
+        key=f"policy-source-type-{item_key}",
+    )
+    corrected_category = form_col2.selectbox(
+        "分类",
+        options=["核心政策", "相关政策", "政策解读 / 新闻", "相关新闻"],
+        index=["核心政策", "相关政策", "政策解读 / 新闻", "相关新闻"].index(
+            str(existing_override.get("category", selected_item.get("category", "相关政策")))
+            if str(existing_override.get("category", selected_item.get("category", "相关政策"))) in ["核心政策", "相关政策", "政策解读 / 新闻", "相关新闻"]
+            else "相关政策"
+        ),
+        key=f"policy-category-{item_key}",
+    )
+    corrected_core = st.checkbox(
+        "标记为核心政策",
+        value=bool(existing_override.get("is_core", selected_item.get("is_core", False))),
+        key=f"policy-core-{item_key}",
+    )
+    corrected_issuer = st.text_input(
+        "发布机构 / 来源",
+        value=str(existing_override.get("issuing_body", selected_item.get("issuing_body") or selected_item.get("发布机构") or selected_item.get("source_name") or selected_item.get("来源") or "")),
+        key=f"policy-issuer-{item_key}",
+    )
+    st.markdown("#### 自动规则说明")
+    st.code("\n".join(selected_item.get("rule_hits") or ["当前没有记录到明确规则命中。"]))
+
+    action_col1, action_col2 = st.columns(2)
+    if action_col1.button("保存人工校正", key=f"policy-save-{item_key}", type="primary", use_container_width=True):
+        overrides = read_json(POLICY_OVERRIDES_PATH, {})
+        overrides[item_key] = {
+            "source_type": corrected_source_type,
+            "category": corrected_category,
+            "is_core": corrected_core,
+            "issuing_body": corrected_issuer,
+            "source_name": corrected_issuer or selected_item.get("source_name", ""),
+        }
+        write_json(POLICY_OVERRIDES_PATH, overrides)
+        st.success("人工校正已保存。")
+        st.rerun()
+    if action_col2.button("清除人工校正", key=f"policy-clear-{item_key}", use_container_width=True):
+        overrides = read_json(POLICY_OVERRIDES_PATH, {})
+        if item_key in overrides:
+            overrides.pop(item_key, None)
+            write_json(POLICY_OVERRIDES_PATH, overrides)
+            st.success("该条目的人工校正已清除。")
+            st.rerun()
 
 
 def policy_digest_panel() -> None:
@@ -570,9 +755,9 @@ def policy_digest_panel() -> None:
     )
 
     metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
-    metric_col1.metric("核心政策", int(summary.get("core_policy_count", len(core_policies))))
-    metric_col2.metric("全部政策", int(summary.get("all_policy_count", len(all_policies))))
-    metric_col3.metric("今日新增", int(summary.get("new_item_count", len(daily_updates))))
+    metric_col1.metric("核心政策", len(core_policies))
+    metric_col2.metric("全部政策", len(all_policies))
+    metric_col3.metric("今日新增", len(daily_updates))
     metric_col4.metric("最近更新", str(summary.get("run_at", "尚未抓取"))[:16] or "尚未抓取")
 
     info_col1, info_col2 = st.columns([1.45, 1])
@@ -624,7 +809,7 @@ def policy_digest_panel() -> None:
             unsafe_allow_html=True,
         )
 
-    tab_core, tab_all, tab_news = st.tabs(["核心政策", "全部政策", "每日抓取预览"])
+    tab_core, tab_all, tab_news, tab_manual = st.tabs(["核心政策", "全部政策", "每日抓取预览", "人工校正"])
 
     with tab_core:
         st.markdown("### 核心政策清单")
@@ -685,6 +870,9 @@ def policy_digest_panel() -> None:
         render_policy_cards(daily_updates or news_updates or POLICY_NEWS_ITEMS, mode="news")
         st.markdown("#### 最新新闻 / 官方解读")
         render_policy_cards(news_updates or POLICY_NEWS_ITEMS, mode="news")
+
+    with tab_manual:
+        render_policy_correction_panel(snapshot)
 
 
 def inject_auto_coding_styles() -> None:
@@ -1074,6 +1262,11 @@ def literature_auto_coding_panel() -> None:
         with st.form("auto-coding-stage1-form"):
             project_name = st.text_input("项目名称", value="文献自动化编码")
             source_inputs = source_import_block("auto-coding", allowed_hint="pdf/docx/txt/md")
+            include_policy_context = st.checkbox(
+                "同步挂接最新政策 / 新闻补充包",
+                value=policy_snapshot_available(),
+                help="不会把政策当论文来提取，但会在本次运行目录里生成政策与新闻补充材料，供后续编码深化分析使用。",
+            )
             prompt_template = st.text_area(
                 "默认变量筛选 Prompt 模板",
                 value=DEFAULT_VARIABLE_PROMPT_TEMPLATE,
@@ -1088,6 +1281,7 @@ def literature_auto_coding_panel() -> None:
 
         if submitted:
             run_dir = RUNS_ROOT / f"auto_coding_stage1_{timestamp_id()}"
+            policy_bundle = build_policy_context_bundle(run_dir) if include_policy_context and policy_snapshot_available() else {}
             prepared = prepare_batches(
                 run_dir=run_dir,
                 allowed_suffixes=PAPER_CODING_SUFFIXES,
@@ -1117,6 +1311,8 @@ def literature_auto_coding_panel() -> None:
                     output_paths=output_paths,
                 )
                 st.success(f"{project_name} 的第一步提取表已生成。")
+                if policy_bundle:
+                    st.info(f"本次运行已挂接政策 / 新闻补充包：`{policy_bundle['combined_md']}`")
 
         if st.session_state.get("auto_coding_stage1_rows"):
             inventory_paths = st.session_state.get("auto_coding_stage1_inventory", {})
@@ -1486,6 +1682,11 @@ def paper_coding_panel() -> None:
             accept_multiple_files=True,
             key="paper-baseline",
         )
+        include_policy_context = st.checkbox(
+            "把最新政策 / 新闻补充包接入本次论文编码工作流",
+            value=policy_snapshot_available(),
+            help="会在运行目录中生成政策与新闻补充材料，供后续文献编码、研究缺口判断和补充写作方向使用。",
+        )
         source_inputs = source_import_block("paper", allowed_hint="pdf/docx/txt/md")
         prompt_template = st.text_area(
             "默认变量筛选 Prompt 模板",
@@ -1514,6 +1715,9 @@ def paper_coding_panel() -> None:
     run_dir = RUNS_ROOT / f"paper_coding_{timestamp_id()}"
     baseline_dir = run_dir / "baseline_files"
     baseline_paths = save_uploaded_files(baseline_files or [], baseline_dir)
+    policy_bundle = build_policy_context_bundle(run_dir) if include_policy_context and policy_snapshot_available() else {}
+    if policy_bundle:
+        baseline_paths.append(policy_bundle["combined_md"])
 
     prepared = prepare_batches(
         run_dir=run_dir,
@@ -1530,8 +1734,12 @@ def paper_coding_panel() -> None:
         return
 
     st.session_state["latest_paper_coding_run"] = str(run_dir)
+    if policy_bundle:
+        st.session_state["latest_policy_context_dir"] = policy_bundle["context_dir"]
     st.session_state["grounded_api_key"] = api_key.strip() if enable_llm else ""
     render_batch_preview(prepared, title="第一步：批次拆分预览")
+    if policy_bundle:
+        st.info(f"本次论文编码已挂接政策 / 新闻补充包：`{policy_bundle['combined_md']}`")
 
     with st.spinner("正在提取论文信息、变量与默认 prompt，请稍候..."):
         stage1_df = build_stage1_dataframe(run_dir, prepared["files"], prompt_template=prompt_template)
@@ -1718,6 +1926,11 @@ def deep_research_panel() -> None:
         use_latest_paper_coding = st.checkbox("自动复用最近一次论文编码合并结果", value=True)
         literature_csv_upload = st.file_uploader("或上传已有 literature_table.csv", type=["csv"], key="deep-upload-csv")
         local_pdf_files = st.file_uploader("上传额外 PDF", type=["pdf"], accept_multiple_files=True, key="deep-upload-pdf")
+        include_policy_digest = st.checkbox(
+            "纳入最新政策库与新闻快照",
+            value=policy_snapshot_available(),
+            help="会把最新政策 / 新闻快照作为真实输入源接入行业报告工作流。",
+        )
 
         st.markdown("#### 可选：模型增强")
         enable_llm = st.checkbox("启用 OpenAI 兼容接口增强报告生成", value=False)
@@ -1748,6 +1961,14 @@ def deep_research_panel() -> None:
 
     config = base_deep_research_config(run_dir, literature_csv=literature_csv)
     config["local_pdf_paths"] = [str(upload_dir)] if any(upload_dir.glob("*.pdf")) else []
+    if include_policy_digest and policy_snapshot_available():
+        latest_dir = POLICY_OUTPUT_ROOT / "latest"
+        config["local_text_paths"] = list(dict.fromkeys(config.get("local_text_paths", []) + [str(latest_dir)]))
+        structured_paths = list(config.get("structured_data_paths", []))
+        for candidate in [latest_dir / "core_policies.csv", latest_dir / "all_policies.csv", latest_dir / "news_updates.csv"]:
+            if candidate.exists():
+                structured_paths.append(str(candidate))
+        config["structured_data_paths"] = list(dict.fromkeys(structured_paths))
     if enable_llm and api_url.strip() and model_name.strip() and api_key.strip():
         config["llm"]["enabled"] = True
         config["llm"]["api_url"] = api_url.strip()
@@ -1787,6 +2008,8 @@ def deep_research_panel() -> None:
     report_path = Path(summary.get("report_path", ""))
     payload_path = Path(summary.get("payload_path", ""))
     st.success("深度研究报告已生成。")
+    if include_policy_digest and policy_snapshot_available():
+        st.info("本次行业报告已经接入最新政策库与新闻快照。")
     col1, col2 = st.columns(2)
     col1.metric("采集证据数", int(summary.get("items_collected", 0)))
     col2.metric("图表数", len(summary.get("charts", [])))

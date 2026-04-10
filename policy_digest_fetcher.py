@@ -71,6 +71,7 @@ class PolicyItem:
     category: str = ""
     matched_keywords: list[str] | None = None
     is_core: bool = False
+    rule_hits: list[str] | None = None
 
 
 def normalize_text(text: str) -> str:
@@ -130,17 +131,32 @@ def is_ai_related(title: str, summary: str, keywords: list[str]) -> bool:
     return bool(extract_keywords(f"{title} {summary}", keywords))
 
 
-def classify_item(title: str, source_name: str, source_type: str) -> tuple[str, bool]:
+def classify_item(title: str, source_name: str, source_type: str) -> tuple[str, bool, list[str]]:
+    rule_hits: list[str] = []
     if source_type == "policy":
+        if title in KNOWN_CORE_TITLES:
+            rule_hits.append("命中已知核心政策名单")
+        for pattern in CORE_POLICY_PATTERNS:
+            if pattern in title:
+                rule_hits.append(f"命中核心政策模式：{pattern}")
         if title in KNOWN_CORE_TITLES or any(pattern in title for pattern in CORE_POLICY_PATTERNS):
-            return "核心政策", True
+            return "核心政策", True, rule_hits
         if any(pattern in title for pattern in POLICY_PATTERNS):
-            return "相关政策", False
+            for pattern in POLICY_PATTERNS:
+                if pattern in title:
+                    rule_hits.append(f"命中一般政策模式：{pattern}")
+            return "相关政策", False, rule_hits
         if source_name == "国务院政策库":
-            return "相关政策", False
+            rule_hits.append("来自国务院政策库")
+            return "相关政策", False, rule_hits
     if any(pattern in title for pattern in NEWS_PATTERNS):
-        return "政策解读 / 新闻", False
-    return "相关新闻", False
+        for pattern in NEWS_PATTERNS:
+            if pattern in title:
+                rule_hits.append(f"命中新闻 / 解读模式：{pattern}")
+        return "政策解读 / 新闻", False, rule_hits
+    if source_name == "国家网信办":
+        rule_hits.append("来自国家网信办")
+    return "相关新闻", False, rule_hits
 
 
 def dedupe_items(items: list[PolicyItem]) -> list[PolicyItem]:
@@ -204,7 +220,7 @@ def fetch_gov_policy_library(queries: list[str], *, pages_per_query: int = 5, pa
                     url = canonicalize_url(str(row.get("url", "")), "https://www.gov.cn")
                     if not title or not is_ai_related(title, summary, queries):
                         continue
-                    category, is_core = classify_item(title, "国务院政策库", "policy")
+                    category, is_core, rule_hits = classify_item(title, "国务院政策库", "policy")
                     items.append(
                         PolicyItem(
                             item_id=url or title,
@@ -218,6 +234,7 @@ def fetch_gov_policy_library(queries: list[str], *, pages_per_query: int = 5, pa
                             category=category,
                             matched_keywords=extract_keywords(f"{title} {summary}", queries),
                             is_core=is_core,
+                            rule_hits=rule_hits,
                         )
                     )
                     rows_found += 1
@@ -251,7 +268,7 @@ def fetch_page_link_items(
         if not is_ai_related(title, "", keywords):
             continue
         seen_titles.add(title)
-        category, is_core = classify_item(title, source_name, default_type)
+        category, is_core, rule_hits = classify_item(title, source_name, default_type)
         items.append(
             PolicyItem(
                 item_id=href or title,
@@ -265,6 +282,7 @@ def fetch_page_link_items(
                 category=category,
                 matched_keywords=extract_keywords(title, keywords),
                 is_core=is_core,
+                rule_hits=rule_hits,
             )
         )
         if len(items) >= limit:
@@ -293,10 +311,11 @@ def fetch_cac_recent_news(keywords: list[str]) -> list[PolicyItem]:
     )
     normalized: list[PolicyItem] = []
     for item in items:
-        category, is_core = classify_item(item.title, "国家网信办", "policy" if any(pattern in item.title for pattern in POLICY_PATTERNS) else "news")
+        category, is_core, rule_hits = classify_item(item.title, "国家网信办", "policy" if any(pattern in item.title for pattern in POLICY_PATTERNS) else "news")
         item.source_type = "policy" if any(pattern in item.title for pattern in POLICY_PATTERNS) else "news"
         item.category = category
         item.is_core = is_core
+        item.rule_hits = rule_hits
         normalized.append(item)
     return normalized
 
