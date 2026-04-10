@@ -35,6 +35,116 @@ RUNTIME_ROOT = APP_ROOT / "webui_runtime"
 RUNS_ROOT = RUNTIME_ROOT / "runs"
 PYTHON_BIN = sys.executable
 
+POLICY_CORE_ITEMS = [
+    {
+        "年份": "2017",
+        "名称": "新一代人工智能发展规划",
+        "层级": "国家级核心政策",
+        "发布机构": "国务院",
+        "摘要": "提出我国人工智能发展的总体目标、重点任务和保障措施，是人工智能国家战略的重要纲领。",
+        "链接": "https://www.gov.cn/zhengce/content/2017-07/20/content_5211996.htm",
+    },
+    {
+        "年份": "2021",
+        "名称": "“十四五”数字经济发展规划",
+        "层级": "国家级核心政策",
+        "发布机构": "国务院",
+        "摘要": "将智能化转型、数字技术创新和产业融合纳入中长期发展体系，为人工智能应用扩展提供政策基础。",
+        "链接": "https://www.gov.cn/zhengce/content/2022-01/12/content_5667817.htm",
+    },
+    {
+        "年份": "2022",
+        "名称": "关于加快场景创新以人工智能高水平应用促进经济高质量发展的指导意见",
+        "层级": "国家级核心政策",
+        "发布机构": "科技部等六部门",
+        "摘要": "强调通过场景开放、示范应用和重点行业落地，推动人工智能由技术突破走向规模应用。",
+        "链接": "https://www.gov.cn/zhengce/zhengceku/2022-08/14/content_5705342.htm",
+    },
+    {
+        "年份": "2023",
+        "名称": "生成式人工智能服务管理暂行办法",
+        "层级": "国家级核心政策",
+        "发布机构": "国家网信办等七部门",
+        "摘要": "围绕生成式人工智能服务的提供、训练数据、内容安全和主体责任进行规范，是生成式 AI 的关键治理政策。",
+        "链接": "https://www.gov.cn/zhengce/zhengceku/2023-07/13/content_6891752.htm",
+    },
+]
+
+POLICY_ALL_ITEMS = [
+    {
+        "年份": "2015",
+        "名称": "促进大数据发展行动纲要",
+        "类型": "相关基础政策",
+        "发布机构": "国务院",
+        "摘要": "从数据资源体系建设和应用创新角度为人工智能发展奠定基础设施和数据要素条件。",
+        "链接": "https://www.gov.cn/zhengce/content/2015-09/05/content_10137.htm",
+    },
+    {
+        "年份": "2017",
+        "名称": "新一代人工智能发展规划",
+        "类型": "核心政策",
+        "发布机构": "国务院",
+        "摘要": "明确人工智能发展路线图、重点方向和战略布局。",
+        "链接": "https://www.gov.cn/zhengce/content/2017-07/20/content_5211996.htm",
+    },
+    {
+        "年份": "2018",
+        "名称": "高等学校人工智能创新行动计划",
+        "类型": "教育与创新政策",
+        "发布机构": "教育部",
+        "摘要": "推动高校人工智能学科建设、人才培养与科研创新能力提升。",
+        "链接": "https://www.moe.gov.cn/srcsite/A16/s7062/201804/t20180410_332722.html",
+    },
+    {
+        "年份": "2021",
+        "名称": "“十四五”数字经济发展规划",
+        "类型": "数字经济政策",
+        "发布机构": "国务院",
+        "摘要": "推动数字产业化与产业数字化，为人工智能落地提供制度与产业支撑。",
+        "链接": "https://www.gov.cn/zhengce/content/2022-01/12/content_5667817.htm",
+    },
+    {
+        "年份": "2022",
+        "名称": "关于加快场景创新以人工智能高水平应用促进经济高质量发展的指导意见",
+        "类型": "应用场景政策",
+        "发布机构": "科技部等六部门",
+        "摘要": "聚焦制造、能源、政务、医疗等重点场景推动人工智能示范落地。",
+        "链接": "https://www.gov.cn/zhengce/zhengceku/2022-08/14/content_5705342.htm",
+    },
+    {
+        "年份": "2023",
+        "名称": "生成式人工智能服务管理暂行办法",
+        "类型": "治理与监管政策",
+        "发布机构": "国家网信办等七部门",
+        "摘要": "系统规定生成式人工智能服务规范、内容安全与治理要求。",
+        "链接": "https://www.gov.cn/zhengce/zhengceku/2023-07/13/content_6891752.htm",
+    },
+]
+
+POLICY_NEWS_ITEMS = [
+    {
+        "日期": "2026-04-10",
+        "标题": "国务院政策文件库",
+        "来源": "Gov.cn",
+        "摘要": "后续每日抓取会优先汇总这里发布的人工智能相关政策、意见、通知与解读。",
+        "链接": "https://www.gov.cn/zhengce/index.htm",
+    },
+    {
+        "日期": "2026-04-10",
+        "标题": "中国政府网政策搜索",
+        "来源": "Gov.cn Search",
+        "摘要": "后续会按“人工智能、生成式人工智能、智能制造、算力、数据要素”等关键词自动检索。",
+        "链接": "https://sousuo.www.gov.cn/search-gov/data",
+    },
+    {
+        "日期": "2026-04-10",
+        "标题": "国家网信办政策发布",
+        "来源": "CAC",
+        "摘要": "适合补充生成式 AI、算法治理、数据安全等监管类政策和新闻。",
+        "链接": "https://www.cac.gov.cn/",
+    },
+]
+
 
 def ensure_runtime_dirs() -> None:
     RUNS_ROOT.mkdir(parents=True, exist_ok=True)
@@ -284,6 +394,198 @@ def render_markdown_file(path: Path, title: str) -> None:
         return
     st.markdown(f"### {title}")
     st.markdown(path.read_text(encoding="utf-8", errors="ignore"))
+
+
+def inject_policy_digest_styles() -> None:
+    st.markdown(
+        """
+<style>
+.policy-shell {
+  border: 1px solid rgba(30, 64, 175, 0.10);
+  border-radius: 24px;
+  background: linear-gradient(135deg, #f8fbff 0%, #eef5ff 52%, #f8fffc 100%);
+  padding: 24px;
+  margin-bottom: 18px;
+}
+.policy-kicker {
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.policy-title {
+  font-size: 31px;
+  line-height: 1.15;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 10px 0;
+}
+.policy-subtitle {
+  color: #334155;
+  font-size: 15px;
+  line-height: 1.75;
+  margin: 0;
+}
+.policy-card {
+  border: 1px solid rgba(30, 64, 175, 0.10);
+  border-radius: 18px;
+  background: white;
+  padding: 18px;
+  min-height: 150px;
+}
+.policy-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+</style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_policy_cards(items: list[dict[str, str]], *, mode: str) -> None:
+    for item in items:
+        with st.container():
+            col1, col2 = st.columns([4.2, 1.1])
+            meta_label = item.get("层级") or item.get("类型") or item.get("来源") or "政策条目"
+            col1.markdown(
+                f"""
+<div class="policy-card">
+  <div class="policy-chip">{item.get("年份", item.get("日期", ""))} · {meta_label}</div>
+  <h4 style="margin:0 0 8px 0;color:#0f172a;">{item['名称'] if '名称' in item else item['标题']}</h4>
+  <p style="margin:0 0 8px 0;color:#475569;font-size:13px;">发布机构 / 来源：{item.get('发布机构', item.get('来源', '待补充'))}</p>
+  <p style="margin:0;color:#334155;line-height:1.75;">{item['摘要']}</p>
+</div>
+                """,
+                unsafe_allow_html=True,
+            )
+            button_label = "查看政策原文" if mode != "news" else "查看新闻 / 页面"
+            col2.link_button(button_label, item["链接"], use_container_width=True)
+
+
+def policy_digest_panel() -> None:
+    inject_policy_digest_styles()
+    st.markdown(
+        """
+<div class="policy-shell">
+  <div class="policy-kicker">Policy Intelligence</div>
+  <h1 class="policy-title">人工智能政策汇总</h1>
+  <p class="policy-subtitle">
+    这个页面先把政策汇总的交互结构搭出来：左侧新增独立入口，页面内先分为“核心政策”和“全部政策”两层，
+    同时预留每日自动抓取政策与相关新闻的状态区。后续接入真实抓取后，这里会每天自动更新并保留可点击跳转的原文入口。
+  </p>
+</div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
+    metric_col1.metric("核心政策", len(POLICY_CORE_ITEMS))
+    metric_col2.metric("全部政策", len(POLICY_ALL_ITEMS))
+    metric_col3.metric("今日抓取状态", "待接入")
+    metric_col4.metric("最近更新", "2026-04-10")
+
+    info_col1, info_col2 = st.columns([1.45, 1])
+    with info_col1:
+        st.markdown("### 政策分层")
+        layer_col1, layer_col2 = st.columns(2)
+        layer_col1.markdown(
+            """
+<div class="policy-card">
+  <div class="policy-chip">核心政策</div>
+  <h4 style="margin:0 0 8px 0;color:#0f172a;">国家战略与关键监管</h4>
+  <p style="margin:0;color:#334155;line-height:1.75;">
+    优先收录国家级顶层规划、关键治理规则、重大场景应用政策和核心制度安排。
+  </p>
+</div>
+            """,
+            unsafe_allow_html=True,
+        )
+        layer_col2.markdown(
+            """
+<div class="policy-card">
+  <div class="policy-chip">全部政策</div>
+  <h4 style="margin:0 0 8px 0;color:#0f172a;">历年相关政策全景</h4>
+  <p style="margin:0;color:#334155;line-height:1.75;">
+    覆盖人工智能、生成式 AI、智能制造、算力、数据要素、数字经济等关联政策。
+  </p>
+</div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with info_col2:
+        st.markdown("### 每日自动抓取")
+        st.markdown(
+            """
+<div class="policy-card">
+  <div class="policy-chip">自动化状态</div>
+  <h4 style="margin:0 0 8px 0;color:#0f172a;">政策 / 新闻双通道</h4>
+  <p style="margin:0 0 10px 0;color:#334155;line-height:1.75;">
+    UI 先预留两类抓取任务：
+    1. 中国历年人工智能政策增量抓取
+    2. 每日相关新闻与官方解读抓取
+  </p>
+  <p style="margin:0;color:#475569;font-size:13px;">
+    后续可接：国务院政策库、国家网信办、科技部、工信部、中国政府网搜索。
+  </p>
+</div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    tab_core, tab_all, tab_news = st.tabs(["核心政策", "全部政策", "每日抓取预览"])
+
+    with tab_core:
+        st.markdown("### 核心政策清单")
+        st.caption("这里突出国家级、纲领性、治理型和场景型关键政策，适合快速建立研究框架。")
+        render_policy_cards(POLICY_CORE_ITEMS, mode="policy")
+
+    with tab_all:
+        st.markdown("### 全部政策清单")
+        st.caption("这里先做历年相关政策总览 UI，后续会按年份、发布机构、政策类型和关键词做真实筛选。")
+        filter_col1, filter_col2, filter_col3 = st.columns(3)
+        filter_col1.selectbox("年份筛选", options=["全部"] + sorted({item["年份"] for item in POLICY_ALL_ITEMS}), index=0)
+        filter_col2.selectbox("发布机构", options=["全部", "国务院", "科技部等六部门", "教育部", "国家网信办等七部门"], index=0)
+        filter_col3.selectbox("政策类型", options=["全部", "核心政策", "数字经济政策", "治理与监管政策", "教育与创新政策", "应用场景政策"], index=0)
+        render_policy_cards(POLICY_ALL_ITEMS, mode="policy")
+
+    with tab_news:
+        st.markdown("### 每日抓取预览")
+        st.caption("这部分先做 UI 结构。后续接上每日自动抓取后，会在这里显示当天新增政策、官方解读和相关新闻。")
+        news_col1, news_col2 = st.columns([1.2, 1])
+        news_col1.dataframe(
+            pd.DataFrame(
+                [
+                    {"任务": "政策增量抓取", "状态": "待接入", "频率": "每天 08:00", "来源": "Gov.cn / 国务院政策库"},
+                    {"任务": "新闻与解读抓取", "状态": "待接入", "频率": "每天 08:30", "来源": "中国政府网 / 国家网信办 / 部委官网"},
+                ]
+            ),
+            hide_index=True,
+            use_container_width=True,
+        )
+        news_col2.markdown(
+            """
+<div class="policy-card">
+  <div class="policy-chip">页面预留</div>
+  <h4 style="margin:0 0 8px 0;color:#0f172a;">自动更新说明</h4>
+  <p style="margin:0;color:#334155;line-height:1.75;">
+    后续这里会展示：
+    今日新增政策、相关新闻、解读文章、抓取时间、去重状态、点击跳转入口。
+  </p>
+</div>
+            """,
+            unsafe_allow_html=True,
+        )
+        render_policy_cards(POLICY_NEWS_ITEMS, mode="news")
 
 
 def inject_auto_coding_styles() -> None:
@@ -1405,6 +1707,7 @@ def home_panel() -> None:
         """
 现在这个入口已经按你的想法拆成了三类主功能：
 
+- `人工智能政策汇总`：汇总中国历年人工智能相关政策，区分核心政策和全部政策，并预留每日抓取页面
 - `文献自动化编码`：新的三步式 UI，顶部箭头切换流程，先承接文献批量编码主流程
 - `论文编码`：导入相关文献内容，按批次自动做论文编码
 - `元分析`：导入研究文献，自动建元分析提取模板和批次工作区
@@ -1426,10 +1729,11 @@ def home_panel() -> None:
     st.markdown("### 当前功能结构")
     st.markdown(
         """
-1. 文献自动化编码：新的三步式主入口，先做 UI，再逐步接论文编码逻辑
-2. 论文编码工作台：现有批量论文编码功能，保留为旧版可运行入口
-3. 元分析：先做资料整理、批次拆分和提取模板
-4. 资料 / 访谈编码：先做文本切割、编码包生成和分段整理
+1. 人工智能政策汇总：新增政策总览页，先做核心政策 / 全部政策 / 每日抓取三层 UI
+2. 文献自动化编码：新的三步式主入口，先做 UI，再逐步接论文编码逻辑
+3. 论文编码工作台：现有批量论文编码功能，保留为旧版可运行入口
+4. 元分析：先做资料整理、批次拆分和提取模板
+5. 资料 / 访谈编码：先做文本切割、编码包生成和分段整理
         """
     )
     st.markdown("### 快速启动")
@@ -1444,6 +1748,7 @@ def main() -> None:
     st.sidebar.title("功能导航")
     page_options = [
         "首页",
+        "人工智能政策汇总",
         "文献自动化编码",
         "论文编码工作台",
         "元分析工作台",
@@ -1461,6 +1766,8 @@ def main() -> None:
     st.query_params["page"] = page
     if page == "首页":
         home_panel()
+    elif page == "人工智能政策汇总":
+        policy_digest_panel()
     elif page == "文献自动化编码":
         literature_auto_coding_panel()
     elif page == "论文编码工作台":
