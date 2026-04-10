@@ -145,6 +145,8 @@ POLICY_NEWS_ITEMS = [
     },
 ]
 
+POLICY_OUTPUT_ROOT = APP_ROOT / "output" / "policy_digest"
+
 
 def ensure_runtime_dirs() -> None:
     RUNS_ROOT.mkdir(parents=True, exist_ok=True)
@@ -162,6 +164,15 @@ def safe_name(text: str) -> str:
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def read_json(path: Path, default: Any) -> Any:
+    if not path.exists():
+        return default
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return default
 
 
 def extract_last_json_block(text: str) -> dict[str, Any]:
@@ -456,24 +467,70 @@ def render_policy_cards(items: list[dict[str, str]], *, mode: str) -> None:
     for item in items:
         with st.container():
             col1, col2 = st.columns([4.2, 1.1])
-            meta_label = item.get("层级") or item.get("类型") or item.get("来源") or "政策条目"
+            title = item.get("名称") or item.get("标题") or item.get("title") or "未命名条目"
+            summary = item.get("摘要") or item.get("summary") or ""
+            publish_label = item.get("年份") or item.get("日期") or item.get("published_at") or ""
+            issuer = item.get("发布机构") or item.get("来源") or item.get("issuing_body") or item.get("source_name") or "待补充"
+            meta_label = item.get("层级") or item.get("类型") or item.get("category") or item.get("来源") or "政策条目"
+            url = item.get("链接") or item.get("url") or ""
             col1.markdown(
                 f"""
 <div class="policy-card">
-  <div class="policy-chip">{item.get("年份", item.get("日期", ""))} · {meta_label}</div>
-  <h4 style="margin:0 0 8px 0;color:#0f172a;">{item['名称'] if '名称' in item else item['标题']}</h4>
-  <p style="margin:0 0 8px 0;color:#475569;font-size:13px;">发布机构 / 来源：{item.get('发布机构', item.get('来源', '待补充'))}</p>
-  <p style="margin:0;color:#334155;line-height:1.75;">{item['摘要']}</p>
+  <div class="policy-chip">{publish_label} · {meta_label}</div>
+  <h4 style="margin:0 0 8px 0;color:#0f172a;">{title}</h4>
+  <p style="margin:0 0 8px 0;color:#475569;font-size:13px;">发布机构 / 来源：{issuer}</p>
+  <p style="margin:0;color:#334155;line-height:1.75;">{summary}</p>
 </div>
                 """,
                 unsafe_allow_html=True,
             )
             button_label = "查看政策原文" if mode != "news" else "查看新闻 / 页面"
-            col2.link_button(button_label, item["链接"], use_container_width=True)
+            if url:
+                col2.link_button(button_label, url, use_container_width=True)
+
+
+def load_policy_digest_snapshot() -> dict[str, Any]:
+    latest_dir = POLICY_OUTPUT_ROOT / "latest"
+    summary = read_json(latest_dir / "summary.json", {})
+    run_date = str(summary.get("run_at", datetime.now().isoformat()))[:10]
+    return {
+        "summary": summary,
+        "core_policies": read_json(latest_dir / "core_policies.json", POLICY_CORE_ITEMS),
+        "all_policies": read_json(latest_dir / "all_policies.json", POLICY_ALL_ITEMS),
+        "news_updates": read_json(latest_dir / "news_updates.json", POLICY_NEWS_ITEMS),
+        "daily_updates": read_json(latest_dir / "daily_updates.json", []),
+        "latest_dir": latest_dir,
+        "daily_digest_path": latest_dir / f"daily_digest_{run_date}.md",
+    }
+
+
+def run_policy_digest_fetch() -> dict[str, Any]:
+    POLICY_OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
+    code, stdout, stderr = run_command(
+        [
+            PYTHON_BIN,
+            "policy_digest_fetcher.py",
+            "--outdir",
+            str(POLICY_OUTPUT_ROOT),
+        ]
+    )
+    return {
+        "code": code,
+        "stdout": stdout,
+        "stderr": stderr,
+        "summary": extract_last_json_block(stdout),
+    }
 
 
 def policy_digest_panel() -> None:
     inject_policy_digest_styles()
+    snapshot = load_policy_digest_snapshot()
+    summary = snapshot["summary"]
+    core_policies = snapshot["core_policies"]
+    all_policies = snapshot["all_policies"]
+    news_updates = snapshot["news_updates"]
+    daily_updates = snapshot["daily_updates"]
+    daily_digest_path = snapshot["daily_digest_path"]
     st.markdown(
         """
 <div class="policy-shell">
@@ -488,11 +545,35 @@ def policy_digest_panel() -> None:
         unsafe_allow_html=True,
     )
 
+    action_col1, action_col2, action_col3 = st.columns([1.2, 1.1, 2.2])
+    if action_col1.button("立即抓取政策与新闻", type="primary", use_container_width=True):
+        with st.spinner("正在从中国政府网、国务院政策库和国家网信办抓取真实政策与新闻..."):
+            result = run_policy_digest_fetch()
+        if result["code"] == 0:
+            st.success("政策与新闻抓取完成，页面已刷新为最新结果。")
+            st.rerun()
+        else:
+            st.error("抓取失败。")
+            if result["stderr"].strip():
+                st.code(result["stderr"])
+    if daily_digest_path.exists():
+        action_col2.download_button(
+            "下载今日日报",
+            data=daily_digest_path.read_bytes(),
+            file_name=daily_digest_path.name,
+            mime="text/markdown",
+            use_container_width=True,
+        )
+    latest_dir = snapshot["latest_dir"]
+    action_col3.caption(
+        f"数据目录：`{latest_dir}` | 最近抓取：`{summary.get('run_at', '尚未抓取')}`"
+    )
+
     metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
-    metric_col1.metric("核心政策", len(POLICY_CORE_ITEMS))
-    metric_col2.metric("全部政策", len(POLICY_ALL_ITEMS))
-    metric_col3.metric("今日抓取状态", "待接入")
-    metric_col4.metric("最近更新", "2026-04-10")
+    metric_col1.metric("核心政策", int(summary.get("core_policy_count", len(core_policies))))
+    metric_col2.metric("全部政策", int(summary.get("all_policy_count", len(all_policies))))
+    metric_col3.metric("今日新增", int(summary.get("new_item_count", len(daily_updates))))
+    metric_col4.metric("最近更新", str(summary.get("run_at", "尚未抓取"))[:16] or "尚未抓取")
 
     info_col1, info_col2 = st.columns([1.45, 1])
     with info_col1:
@@ -530,12 +611,13 @@ def policy_digest_panel() -> None:
   <div class="policy-chip">自动化状态</div>
   <h4 style="margin:0 0 8px 0;color:#0f172a;">政策 / 新闻双通道</h4>
   <p style="margin:0 0 10px 0;color:#334155;line-height:1.75;">
-    UI 先预留两类抓取任务：
-    1. 中国历年人工智能政策增量抓取
-    2. 每日相关新闻与官方解读抓取
+    当前已经接入三类真实来源：
+    1. 国务院政策库历史检索
+    2. 中国政府网政策 / 解读页面
+    3. 国家网信办首页相关政策与新闻
   </p>
   <p style="margin:0;color:#475569;font-size:13px;">
-    后续可接：国务院政策库、国家网信办、科技部、工信部、中国政府网搜索。
+    每次抓取都会写入状态文件，自动做去重，并生成当日日报，方便后续接每日定时运行。
   </p>
 </div>
             """,
@@ -547,26 +629,41 @@ def policy_digest_panel() -> None:
     with tab_core:
         st.markdown("### 核心政策清单")
         st.caption("这里突出国家级、纲领性、治理型和场景型关键政策，适合快速建立研究框架。")
-        render_policy_cards(POLICY_CORE_ITEMS, mode="policy")
+        render_policy_cards(core_policies or POLICY_CORE_ITEMS, mode="policy")
 
     with tab_all:
         st.markdown("### 全部政策清单")
         st.caption("这里先做历年相关政策总览 UI，后续会按年份、发布机构、政策类型和关键词做真实筛选。")
+        years = sorted({item.get("年份", "") or str(item.get("published_at", ""))[:4] for item in all_policies if item.get("年份", "") or item.get("published_at", "")})
+        issuers = sorted({item.get("发布机构", "") or item.get("issuing_body", "") for item in all_policies if item.get("发布机构", "") or item.get("issuing_body", "")})
+        types = sorted({item.get("类型", "") or item.get("category", "") for item in all_policies if item.get("类型", "") or item.get("category", "")})
         filter_col1, filter_col2, filter_col3 = st.columns(3)
-        filter_col1.selectbox("年份筛选", options=["全部"] + sorted({item["年份"] for item in POLICY_ALL_ITEMS}), index=0)
-        filter_col2.selectbox("发布机构", options=["全部", "国务院", "科技部等六部门", "教育部", "国家网信办等七部门"], index=0)
-        filter_col3.selectbox("政策类型", options=["全部", "核心政策", "数字经济政策", "治理与监管政策", "教育与创新政策", "应用场景政策"], index=0)
-        render_policy_cards(POLICY_ALL_ITEMS, mode="policy")
+        selected_year = filter_col1.selectbox("年份筛选", options=["全部"] + years, index=0)
+        selected_issuer = filter_col2.selectbox("发布机构", options=["全部"] + issuers, index=0)
+        selected_type = filter_col3.selectbox("政策类型", options=["全部"] + types, index=0)
+        filtered_policies = []
+        for item in all_policies:
+            year_value = item.get("年份", "") or str(item.get("published_at", ""))[:4]
+            issuer_value = item.get("发布机构", "") or item.get("issuing_body", "")
+            type_value = item.get("类型", "") or item.get("category", "")
+            if selected_year != "全部" and year_value != selected_year:
+                continue
+            if selected_issuer != "全部" and issuer_value != selected_issuer:
+                continue
+            if selected_type != "全部" and type_value != selected_type:
+                continue
+            filtered_policies.append(item)
+        render_policy_cards(filtered_policies or all_policies or POLICY_ALL_ITEMS, mode="policy")
 
     with tab_news:
         st.markdown("### 每日抓取预览")
-        st.caption("这部分先做 UI 结构。后续接上每日自动抓取后，会在这里显示当天新增政策、官方解读和相关新闻。")
+        st.caption("这里已经开始读取真实抓取结果。后续接每日自动任务后，会自动更新当天新增政策、官方解读和相关新闻。")
         news_col1, news_col2 = st.columns([1.2, 1])
         news_col1.dataframe(
             pd.DataFrame(
                 [
-                    {"任务": "政策增量抓取", "状态": "待接入", "频率": "每天 08:00", "来源": "Gov.cn / 国务院政策库"},
-                    {"任务": "新闻与解读抓取", "状态": "待接入", "频率": "每天 08:30", "来源": "中国政府网 / 国家网信办 / 部委官网"},
+                    {"任务": "政策增量抓取", "状态": "已接入", "频率": "支持每日运行", "来源": "Gov.cn / 国务院政策库"},
+                    {"任务": "新闻与解读抓取", "状态": "已接入", "频率": "支持每日运行", "来源": "中国政府网 / 国家网信办"},
                 ]
             ),
             hide_index=True,
@@ -576,16 +673,18 @@ def policy_digest_panel() -> None:
             """
 <div class="policy-card">
   <div class="policy-chip">页面预留</div>
-  <h4 style="margin:0 0 8px 0;color:#0f172a;">自动更新说明</h4>
+  <h4 style="margin:0 0 8px 0;color:#0f172a;">每日逻辑说明</h4>
   <p style="margin:0;color:#334155;line-height:1.75;">
-    后续这里会展示：
-    今日新增政策、相关新闻、解读文章、抓取时间、去重状态、点击跳转入口。
+    当前抓取脚本会自动保存状态文件、去重键和当日日报。后续只需要把这个脚本挂到每日定时任务上，就会形成稳定的每日政策监测流。
   </p>
 </div>
             """,
             unsafe_allow_html=True,
         )
-        render_policy_cards(POLICY_NEWS_ITEMS, mode="news")
+        st.markdown("#### 今日新增")
+        render_policy_cards(daily_updates or news_updates or POLICY_NEWS_ITEMS, mode="news")
+        st.markdown("#### 最新新闻 / 官方解读")
+        render_policy_cards(news_updates or POLICY_NEWS_ITEMS, mode="news")
 
 
 def inject_auto_coding_styles() -> None:
