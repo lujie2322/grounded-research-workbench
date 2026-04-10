@@ -656,6 +656,44 @@ def build_policy_gap_insights(stage1_rows: list[dict[str, Any]], policy_items: l
     return {"gap_rows": gap_rows, "suggestions": suggestions}
 
 
+def build_policy_proposition_drafts(gap_insights: dict[str, Any]) -> dict[str, Any]:
+    gap_rows = gap_insights.get("gap_rows", [])
+    proposition_rows: list[dict[str, str]] = []
+    for index, row in enumerate(gap_rows, start=1):
+        antecedent = str(row.get("前因变量", "")).split("、")[0].strip() or "前因变量"
+        mechanism = str(row.get("机制/调节变量", "")).split("、")[0].strip() or "机制变量"
+        outcome = str(row.get("结果变量", "")).split("、")[0].strip() or "结果变量"
+        theme = str(row.get("政策主题", "")).strip() or "政策主题"
+        policy_name = str(row.get("对应政策", "")).strip() or "相关政策"
+        coverage = str(row.get("覆盖情况", "")).strip()
+        level = str(row.get("缺口级别", "")).strip() or "中"
+        proposition_text = (
+            f"命题 P{index}：在“{theme}”政策情境下，{antecedent}会通过{mechanism}进一步影响{outcome}。"
+            f"该命题可结合“{policy_name}”所体现的制度环境变化进行检验。"
+        )
+        if "机制缺口" in coverage and "前因缺口" not in coverage:
+            position = "建议放入理论机制或研究假设部分，补强中介 / 调节路径。"
+        elif "前因缺口" in coverage:
+            position = "建议放入研究框架前因部分，把政策变量正式引入模型。"
+        elif "结果缺口" in coverage:
+            position = "建议放入结果讨论或扩展模型部分，补充政策作用结果变量。"
+        else:
+            position = "建议放入研究假设与讨论衔接处，作为扩展命题。"
+        proposition_rows.append(
+            {
+                "命题编号": f"P{index}",
+                "政策主题": theme,
+                "建议关系链": str(row.get("建议关系链", "")),
+                "研究命题草案": proposition_text,
+                "适合放入论文位置": position,
+                "缺口级别": level,
+                "对应政策": policy_name,
+                "补充方向": str(row.get("补充方向", "")),
+            }
+        )
+    return {"rows": proposition_rows}
+
+
 def build_policy_context_bundle(target_dir: Path) -> dict[str, str]:
     snapshot = load_policy_digest_snapshot()
     core_policies = snapshot["core_policies"]
@@ -754,6 +792,61 @@ def save_policy_gap_analysis_bundle(snapshot: dict[str, Any], gap_insights: dict
     else:
         lines.append("当前没有识别到明显的政策-论文关系链缺口。")
         lines.append("")
+    md_path.write_text("\n".join(lines), encoding="utf-8")
+    return {"csv": str(csv_path), "xlsx": str(xlsx_path), "md": str(md_path)}
+
+
+def save_policy_proposition_bundle(snapshot: dict[str, Any], proposition_drafts: dict[str, Any]) -> dict[str, str]:
+    latest_dir = snapshot["latest_dir"]
+    latest_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = latest_dir / "policy_proposition_drafts.csv"
+    xlsx_path = latest_dir / "policy_proposition_drafts.xlsx"
+    md_path = latest_dir / "policy_proposition_drafts.md"
+    rows = proposition_drafts.get("rows", [])
+    dataframe = pd.DataFrame(rows)
+    if not dataframe.empty:
+        dataframe.to_csv(csv_path, index=False)
+        dataframe.to_excel(xlsx_path, index=False)
+    else:
+        empty = pd.DataFrame(
+            columns=[
+                "命题编号",
+                "政策主题",
+                "建议关系链",
+                "研究命题草案",
+                "适合放入论文位置",
+                "缺口级别",
+                "对应政策",
+                "补充方向",
+            ]
+        )
+        empty.to_csv(csv_path, index=False)
+        empty.to_excel(xlsx_path, index=False)
+
+    lines = [
+        "# 政策驱动研究命题草案",
+        "",
+        f"- 生成时间：{datetime.now().isoformat(timespec='seconds')}",
+        f"- 命题草案数：{len(rows)}",
+        "",
+    ]
+    if rows:
+        for row in rows:
+            lines.extend(
+                [
+                    f"## {row['命题编号']}｜{row['政策主题']}",
+                    "",
+                    f"- 建议关系链：{row['建议关系链']}",
+                    f"- 研究命题草案：{row['研究命题草案']}",
+                    f"- 适合放入论文位置：{row['适合放入论文位置']}",
+                    f"- 缺口级别：{row['缺口级别']}",
+                    f"- 对应政策：{row['对应政策']}",
+                    f"- 补充方向：{row['补充方向']}",
+                    "",
+                ]
+            )
+    else:
+        lines.extend(["当前没有可转写的政策驱动研究命题草案。", ""])
     md_path.write_text("\n".join(lines), encoding="utf-8")
     return {"csv": str(csv_path), "xlsx": str(xlsx_path), "md": str(md_path)}
 
@@ -964,7 +1057,9 @@ def policy_digest_panel() -> None:
     daily_digest_path = snapshot["daily_digest_path"]
     stage1_rows = load_latest_stage1_rows()
     gap_insights = build_policy_gap_insights(stage1_rows, all_policies + news_updates)
+    proposition_drafts = build_policy_proposition_drafts(gap_insights) if stage1_rows else {"rows": []}
     gap_bundle = save_policy_gap_analysis_bundle(snapshot, gap_insights) if stage1_rows else {}
+    proposition_bundle = save_policy_proposition_bundle(snapshot, proposition_drafts) if stage1_rows else {}
     st.markdown(
         """
 <div class="policy-shell">
@@ -1030,6 +1125,25 @@ def policy_digest_panel() -> None:
                 gap_dl_col3.download_button("下载缺口分析 Markdown", data=gap_md.read_bytes(), file_name=gap_md.name, mime="text/markdown", use_container_width=True)
             st.dataframe(pd.DataFrame(gap_insights["gap_rows"]), use_container_width=True, hide_index=True)
             st.info("这里已经升级成关系链级提醒：会把政策映射到建议的前因变量、机制/调节变量和结果变量链条，再与你最近一次论文编码结果做覆盖对比。")
+            st.markdown("#### 研究命题草案")
+            prop_dl_col1, prop_dl_col2, prop_dl_col3 = st.columns(3)
+            prop_csv = Path(proposition_bundle["csv"])
+            prop_xlsx = Path(proposition_bundle["xlsx"])
+            prop_md = Path(proposition_bundle["md"])
+            if prop_csv.exists():
+                prop_dl_col1.download_button("下载命题草案 CSV", data=prop_csv.read_bytes(), file_name=prop_csv.name, mime="text/csv", use_container_width=True)
+            if prop_xlsx.exists():
+                prop_dl_col2.download_button(
+                    "下载命题草案 Excel",
+                    data=prop_xlsx.read_bytes(),
+                    file_name=prop_xlsx.name,
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True,
+                )
+            if prop_md.exists():
+                prop_dl_col3.download_button("下载命题草案 Markdown", data=prop_md.read_bytes(), file_name=prop_md.name, mime="text/markdown", use_container_width=True)
+            st.dataframe(pd.DataFrame(proposition_drafts["rows"]), use_container_width=True, hide_index=True)
+            st.caption("这些命题草案会根据政策主题、建议关系链和当前论文缺口自动转写成可继续打磨的论文命题初稿。")
         else:
             st.success("当前最新政策主题与你最近一次论文编码结果的主要概念和变量提取没有出现明显新增缺口。")
     else:

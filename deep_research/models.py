@@ -46,6 +46,7 @@ class AnalysisArtifact:
     financial_comparison: list[str] = field(default_factory=list)
     sentiment_findings: list[str] = field(default_factory=list)
     policy_findings: list[str] = field(default_factory=list)
+    policy_impact_chains: list[str] = field(default_factory=list)
     community_findings: list[str] = field(default_factory=list)
     scorecard_rows: list[dict[str, str]] = field(default_factory=list)
     sentiment_dashboard: list[dict[str, str]] = field(default_factory=list)

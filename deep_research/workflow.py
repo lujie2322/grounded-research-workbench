@@ -198,6 +198,7 @@ class AnalystAgent:
         artifact.financial_comparison = self._financial_comparison(quantitative)
         artifact.sentiment_findings = self._sentiment_findings(news_items)
         artifact.policy_findings = self._policy_findings(policy_items)
+        artifact.policy_impact_chains = self._policy_impact_chains(policy_items)
         artifact.community_findings = self._community_findings(community_items)
         artifact.scorecard_rows = self._scorecard_rows(quantitative)
         artifact.sentiment_dashboard = self._sentiment_dashboard(news_items, policy_items, community_items)
@@ -434,6 +435,34 @@ class AnalystAgent:
                 .replace("unknown", "未标注")
             )
         return findings[:8] or ["当前未检索到足够的官方政策结果。"]
+
+    def _policy_impact_chains(self, items: list[CollectedItem]) -> list[str]:
+        chains: list[str] = []
+        seen: set[str] = set()
+        for item in items[:10]:
+            title = item.title.strip() or "政策条目"
+            text = normalize_text(" ".join([item.title, item.summary, item.content[:1200]]))
+            if any(token in text for token in ["生成式人工智能", "大模型", "算法", "服务管理", "内容安全"]):
+                chain = f"{title}：监管要求强化 -> 合规能力与组织信任提升 -> AI 规模化采纳与应用绩效改善"
+            elif any(token in text for token in ["场景", "试点", "示范", "应用场景"]):
+                chain = f"{title}：政策支持与场景开放 -> 资源获取和组织学习增强 -> AI 采纳强度与创新绩效提升"
+            elif any(token in text for token in ["算力", "智算", "数据中心", "基础设施", "网络"]):
+                chain = f"{title}：算力与基础设施供给改善 -> 技术能力和数字能力提升 -> AI 应用深度与转型绩效增强"
+            elif any(token in text for token in ["数据", "隐私", "安全", "语料", "信息保护"]):
+                chain = f"{title}：数据治理与安全要求提升 -> 数据能力与治理成熟度提高 -> AI 采纳意愿与组织绩效改善"
+            elif any(token in text for token in ["智能制造", "工业", "机器人", "制造业"]):
+                chain = f"{title}：产业升级政策推动 -> 流程重构与技术整合加速 -> 生产效率与竞争优势提升"
+            else:
+                tone = self._classify_tone(item, "policy")
+                if tone == "偏谨慎":
+                    chain = f"{title}：政策约束增强 -> 合规成本与实施门槛上升 -> AI 落地节奏阶段性放缓"
+                else:
+                    chain = f"{title}：政策信号释放 -> 组织资源配置与战略关注提升 -> AI 采纳与业务绩效改善"
+            if chain in seen:
+                continue
+            seen.add(chain)
+            chains.append(chain)
+        return chains[:8] or ["当前政策证据不足，暂未形成稳定的政策影响链。"]
 
     def _community_findings(self, items: list[CollectedItem]) -> list[str]:
         findings: list[str] = []
@@ -742,6 +771,7 @@ class AggregatorAgent:
         )
         references = [f"- {item.title} ({item.source_name})" for item in ranked_references[:15]]
         markdown = self._llm_report(task, plan, items, analysis) or self._fallback_report(task, plan, items, analysis)
+        markdown = self._ensure_policy_impact_chain_section(markdown, analysis)
         sections = {
             "executive_summary": "执行摘要",
             "industry_status": "行业现状",
@@ -749,6 +779,7 @@ class AggregatorAgent:
             "macro": "宏观影响",
             "news": "新闻舆情",
             "policy": "政策动向",
+            "policy_impact_chain": "政策影响链",
             "community": "社区讨论",
             "swot": "SWOT 与金字塔结论",
             "scenarios": "未来情景",
@@ -783,7 +814,7 @@ class AggregatorAgent:
             total += len(block)
         prompt = (
             "请把以下证据组织成一篇专业级行业研究报告。要求使用 MECE、SWOT、金字塔结论法，"
-            "并保证跨章节结论一致。必须覆盖：执行摘要、行业现状、财务比对与量化信号、宏观影响、新闻舆情、政策动向、社区讨论、"
+            "并保证跨章节结论一致。必须覆盖：执行摘要、行业现状、财务比对与量化信号、宏观影响、新闻舆情、政策动向、政策影响链、社区讨论、"
             "风险与机会、未来情景、跟踪指标。若某类数据不足要明确说明，不允许编造。\n\n"
             f"任务：{task.task}\n"
             f"关注重点：{'；'.join(plan.report_focus)}\n"
@@ -872,6 +903,9 @@ class AggregatorAgent:
         lines.extend(["", "## 政策动向"])
         for finding in analysis.policy_findings[:6]:
             lines.append(f"- {finding}")
+        lines.extend(["", "## 政策影响链"])
+        for chain in analysis.policy_impact_chains[:6]:
+            lines.append(f"- {chain}")
         lines.extend(["", "## 社区讨论"])
         for finding in analysis.community_findings[:6]:
             lines.append(f"- {finding}")
@@ -916,6 +950,16 @@ class AggregatorAgent:
         lines.extend(["", "## 参考来源"])
         lines.extend(references or ["- 当前没有可引用来源。"])
         return "\n".join(lines) + "\n"
+
+    def _ensure_policy_impact_chain_section(self, markdown: str, analysis: AnalysisArtifact) -> str:
+        if not markdown.strip():
+            return markdown
+        if "政策影响链" in markdown:
+            return markdown
+        lines = [markdown.rstrip(), "", "## 政策影响链"]
+        for chain in analysis.policy_impact_chains[:6]:
+            lines.append(f"- {chain}")
+        return "\n".join(lines).rstrip() + "\n"
 
 
 class OrchestratorAgent:
