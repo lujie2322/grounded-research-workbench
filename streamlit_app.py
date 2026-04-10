@@ -694,6 +694,43 @@ def build_policy_proposition_drafts(gap_insights: dict[str, Any]) -> dict[str, A
     return {"rows": proposition_rows}
 
 
+def build_policy_hypothesis_drafts(gap_insights: dict[str, Any]) -> dict[str, Any]:
+    gap_rows = gap_insights.get("gap_rows", [])
+    hypothesis_rows: list[dict[str, str]] = []
+    for index, row in enumerate(gap_rows, start=1):
+        antecedent = str(row.get("前因变量", "")).split("、")[0].strip() or "前因变量"
+        mechanism = str(row.get("机制/调节变量", "")).split("、")[0].strip() or "机制变量"
+        outcome = str(row.get("结果变量", "")).split("、")[0].strip() or "结果变量"
+        theme = str(row.get("政策主题", "")).strip() or "政策主题"
+        policy_name = str(row.get("对应政策", "")).strip() or "相关政策"
+        coverage = str(row.get("覆盖情况", "")).strip()
+        if "机制缺口" in coverage and "前因缺口" not in coverage:
+            hypothesis_type = "中介 / 调节假设"
+            statement = f"H{index}：在“{theme}”政策情境下，{antecedent}通过{mechanism}正向影响{outcome}。"
+        elif "前因缺口" in coverage:
+            hypothesis_type = "主效应假设"
+            statement = f"H{index}：在“{theme}”政策情境下，{antecedent}正向影响{outcome}。"
+        elif "结果缺口" in coverage:
+            hypothesis_type = "结果效应假设"
+            statement = f"H{index}：在“{theme}”政策情境下，{mechanism}正向影响{outcome}。"
+        else:
+            hypothesis_type = "扩展假设"
+            statement = f"H{index}：在“{theme}”政策情境下，{antecedent}通过{mechanism}进一步影响{outcome}。"
+        hypothesis_rows.append(
+            {
+                "假设编号": f"H{index}",
+                "政策主题": theme,
+                "假设类型": hypothesis_type,
+                "建议关系链": str(row.get("建议关系链", "")),
+                "研究假设草案": statement,
+                "理论依据": f"可结合“{policy_name}”所体现的制度环境变化与政策压力展开论证。",
+                "对应政策": policy_name,
+                "补充方向": str(row.get("补充方向", "")),
+            }
+        )
+    return {"rows": hypothesis_rows}
+
+
 def build_policy_context_bundle(target_dir: Path) -> dict[str, str]:
     snapshot = load_policy_digest_snapshot()
     core_policies = snapshot["core_policies"]
@@ -847,6 +884,61 @@ def save_policy_proposition_bundle(snapshot: dict[str, Any], proposition_drafts:
             )
     else:
         lines.extend(["当前没有可转写的政策驱动研究命题草案。", ""])
+    md_path.write_text("\n".join(lines), encoding="utf-8")
+    return {"csv": str(csv_path), "xlsx": str(xlsx_path), "md": str(md_path)}
+
+
+def save_policy_hypothesis_bundle(snapshot: dict[str, Any], hypothesis_drafts: dict[str, Any]) -> dict[str, str]:
+    latest_dir = snapshot["latest_dir"]
+    latest_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = latest_dir / "policy_hypothesis_drafts.csv"
+    xlsx_path = latest_dir / "policy_hypothesis_drafts.xlsx"
+    md_path = latest_dir / "policy_hypothesis_drafts.md"
+    rows = hypothesis_drafts.get("rows", [])
+    dataframe = pd.DataFrame(rows)
+    if not dataframe.empty:
+        dataframe.to_csv(csv_path, index=False)
+        dataframe.to_excel(xlsx_path, index=False)
+    else:
+        empty = pd.DataFrame(
+            columns=[
+                "假设编号",
+                "政策主题",
+                "假设类型",
+                "建议关系链",
+                "研究假设草案",
+                "理论依据",
+                "对应政策",
+                "补充方向",
+            ]
+        )
+        empty.to_csv(csv_path, index=False)
+        empty.to_excel(xlsx_path, index=False)
+
+    lines = [
+        "# 政策驱动研究假设草案",
+        "",
+        f"- 生成时间：{datetime.now().isoformat(timespec='seconds')}",
+        f"- 假设草案数：{len(rows)}",
+        "",
+    ]
+    if rows:
+        for row in rows:
+            lines.extend(
+                [
+                    f"## {row['假设编号']}｜{row['政策主题']}",
+                    "",
+                    f"- 假设类型：{row['假设类型']}",
+                    f"- 建议关系链：{row['建议关系链']}",
+                    f"- 研究假设草案：{row['研究假设草案']}",
+                    f"- 理论依据：{row['理论依据']}",
+                    f"- 对应政策：{row['对应政策']}",
+                    f"- 补充方向：{row['补充方向']}",
+                    "",
+                ]
+            )
+    else:
+        lines.extend(["当前没有可转写的政策驱动研究假设草案。", ""])
     md_path.write_text("\n".join(lines), encoding="utf-8")
     return {"csv": str(csv_path), "xlsx": str(xlsx_path), "md": str(md_path)}
 
@@ -1058,8 +1150,10 @@ def policy_digest_panel() -> None:
     stage1_rows = load_latest_stage1_rows()
     gap_insights = build_policy_gap_insights(stage1_rows, all_policies + news_updates)
     proposition_drafts = build_policy_proposition_drafts(gap_insights) if stage1_rows else {"rows": []}
+    hypothesis_drafts = build_policy_hypothesis_drafts(gap_insights) if stage1_rows else {"rows": []}
     gap_bundle = save_policy_gap_analysis_bundle(snapshot, gap_insights) if stage1_rows else {}
     proposition_bundle = save_policy_proposition_bundle(snapshot, proposition_drafts) if stage1_rows else {}
+    hypothesis_bundle = save_policy_hypothesis_bundle(snapshot, hypothesis_drafts) if stage1_rows else {}
     st.markdown(
         """
 <div class="policy-shell">
@@ -1144,6 +1238,25 @@ def policy_digest_panel() -> None:
                 prop_dl_col3.download_button("下载命题草案 Markdown", data=prop_md.read_bytes(), file_name=prop_md.name, mime="text/markdown", use_container_width=True)
             st.dataframe(pd.DataFrame(proposition_drafts["rows"]), use_container_width=True, hide_index=True)
             st.caption("这些命题草案会根据政策主题、建议关系链和当前论文缺口自动转写成可继续打磨的论文命题初稿。")
+            st.markdown("#### 研究假设草案")
+            hyp_dl_col1, hyp_dl_col2, hyp_dl_col3 = st.columns(3)
+            hyp_csv = Path(hypothesis_bundle["csv"])
+            hyp_xlsx = Path(hypothesis_bundle["xlsx"])
+            hyp_md = Path(hypothesis_bundle["md"])
+            if hyp_csv.exists():
+                hyp_dl_col1.download_button("下载假设草案 CSV", data=hyp_csv.read_bytes(), file_name=hyp_csv.name, mime="text/csv", use_container_width=True)
+            if hyp_xlsx.exists():
+                hyp_dl_col2.download_button(
+                    "下载假设草案 Excel",
+                    data=hyp_xlsx.read_bytes(),
+                    file_name=hyp_xlsx.name,
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True,
+                )
+            if hyp_md.exists():
+                hyp_dl_col3.download_button("下载假设草案 Markdown", data=hyp_md.read_bytes(), file_name=hyp_md.name, mime="text/markdown", use_container_width=True)
+            st.dataframe(pd.DataFrame(hypothesis_drafts["rows"]), use_container_width=True, hide_index=True)
+            st.caption("这里会把同一条政策关系链自动改写成更适合实证论文的 H1 / H2 / H3 假设表述。")
         else:
             st.success("当前最新政策主题与你最近一次论文编码结果的主要概念和变量提取没有出现明显新增缺口。")
     else:
